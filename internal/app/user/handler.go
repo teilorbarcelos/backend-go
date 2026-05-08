@@ -1,16 +1,29 @@
 package user
 
 import (
+	"context"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/teilorbarcelos/backend-go/internal/core/handler"
+	"github.com/teilorbarcelos/backend-go/internal/core/models"
+	"github.com/teilorbarcelos/backend-go/pkg/database"
 )
 
-type UserHandler struct {
-	Service *UserService
+type UserServiceI interface {
+	Create(ctx context.Context, dto CreateUserDTO) (*models.User, error)
+	Update(ctx context.Context, id string, dto UpdateUserDTO) (*models.User, error)
+	List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error)
+	GetByID(ctx context.Context, id string) (*models.User, error)
+	Delete(ctx context.Context, id string) error
+	SetStatus(ctx context.Context, id string, active bool) error
 }
 
-func NewUserHandler(service *UserService) *UserHandler {
+type UserHandler struct {
+	Service UserServiceI
+}
+
+func NewUserHandler(service UserServiceI) *UserHandler {
 	return &UserHandler{Service: service}
 }
 

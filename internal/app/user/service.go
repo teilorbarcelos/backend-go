@@ -11,12 +11,24 @@ import (
 	"github.com/teilorbarcelos/backend-go/pkg/security"
 )
 
+type UserRepositoryI interface {
+	Create(user *models.User) error
+	Update(id string, updates map[string]interface{}) error
+	Delete(id string) error
+	FindByID(id string) (*models.User, error)
+	FindByEmail(email string, preloads ...string) (*models.User, error)
+	UpdatePassword(authID string, password string) error
+	FindAllWithRole(filter map[string]interface{}, offset, limit int) ([]models.User, int64, error)
+	SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]models.User, int64, error)
+	WithContext(ctx context.Context) UserRepositoryI
+}
+
 type UserService struct {
-	Repo           *UserRepository
+	Repo           UserRepositoryI
 	SessionManager *session.SessionManager
 }
 
-func NewUserService(repo *UserRepository, sessionMgr *session.SessionManager) *UserService {
+func NewUserService(repo UserRepositoryI, sessionMgr *session.SessionManager) *UserService {
 	return &UserService{
 		Repo:           repo,
 		SessionManager: sessionMgr,
@@ -101,7 +113,11 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 
 	if dto.Password != "" {
 		hashedPassword, _ := security.HashPassword(dto.Password)
-		s.Repo.WithContext(ctx).DB.Model(&models.Auth{}).Where("id = ?", user.IDAuth).Update("password", hashedPassword)
+		if user.IDAuth != nil {
+			if err := s.Repo.WithContext(ctx).UpdatePassword(*user.IDAuth, hashedPassword); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Invalida sessões se houver qualquer alteração (exceto talvez só nome, mas por segurança invalidamos)
@@ -126,7 +142,10 @@ func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, err
 
 func (s *UserService) Delete(ctx context.Context, id string) error {
 	user, err := s.Repo.WithContext(ctx).FindByID(id)
-	if err == nil && user.Email == config.AppConfig.FirstUserEmail {
+	if err != nil {
+		return err
+	}
+	if user.Email == config.AppConfig.FirstUserEmail {
 		return errors.New("o usuário administrador inicial não pode ser excluído")
 	}
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
@@ -137,7 +156,10 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 
 func (s *UserService) SetStatus(ctx context.Context, id string, active bool) error {
 	user, err := s.Repo.WithContext(ctx).FindByID(id)
-	if err == nil && user.Email == config.AppConfig.FirstUserEmail && !active {
+	if err != nil {
+		return err
+	}
+	if user.Email == config.AppConfig.FirstUserEmail && !active {
 		return errors.New("o usuário administrador inicial não pode ser desativado")
 	}
 	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {

@@ -98,7 +98,11 @@ func ApplyFilters(db *gorm.DB, params FilterParams, allowedFilters map[string]bo
 
 	// 4. Paginação
 	if params.Limit > 0 {
-		offset := params.Page * params.Limit
+		page := params.Page
+		if page < 1 {
+			page = 1
+		}
+		offset := (page - 1) * params.Limit
 		query = query.Offset(offset).Limit(params.Limit)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/teilorbarcelos/backend-go/internal/core/models"
 	"github.com/teilorbarcelos/backend-go/pkg/config"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -24,7 +25,12 @@ func ConnectDB() {
 		gormConfig.Logger = logger.Default.LogMode(logger.Error)
 	}
 
-	DB, err = gorm.Open(postgres.Open(config.AppConfig.DBUrl), gormConfig)
+	if config.AppConfig.Environment == "test" {
+		DB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), gormConfig)
+	} else {
+		DB, err = gorm.Open(postgres.Open(config.AppConfig.DBUrl), gormConfig)
+	}
+
 	if err != nil {
 		log.Fatalf("Falha ao conectar no banco de dados: %v", err)
 	}
