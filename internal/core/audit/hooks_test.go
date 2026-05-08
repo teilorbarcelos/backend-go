@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

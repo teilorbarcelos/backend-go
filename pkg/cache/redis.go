@@ -6,7 +6,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/pkg/config"
 )
 
 var RedisClient *redis.Client

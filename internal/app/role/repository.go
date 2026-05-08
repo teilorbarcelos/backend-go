@@ -2,8 +2,8 @@ package role
 
 import (
 	"context"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/core/repository"
+	"backend-go/internal/core/models"
+	"backend-go/internal/core/repository"
 	"gorm.io/gorm"
 )
 

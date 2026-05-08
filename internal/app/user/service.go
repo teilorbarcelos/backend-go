@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/infra/session"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/internal/core/models"
+	"backend-go/internal/infra/session"
+	"backend-go/pkg/config"
+	"backend-go/pkg/database"
+	"backend-go/pkg/security"
 )
 
 type UserRepositoryI interface {

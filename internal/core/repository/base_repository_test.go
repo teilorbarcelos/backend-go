@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/database"
 )
 
 func TestBaseRepository_FindAll(t *testing.T) {

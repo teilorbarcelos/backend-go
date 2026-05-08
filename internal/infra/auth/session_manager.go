@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/teilorbarcelos/backend-go/pkg/cache"
+	"backend-go/pkg/cache"
 )
 
 type SessionManager struct{}

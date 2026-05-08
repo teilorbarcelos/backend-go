@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/pkg/database"
 )
 
 // ParseFilterParams extrai parâmetros de filtro de uma requisição Gin.

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/pkg/config"
 )
 
 var RabbitConn *amqp.Connection

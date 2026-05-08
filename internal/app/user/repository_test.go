@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/database"
 )
 
 func TestUserRepository_FindAllWithRole(t *testing.T) {

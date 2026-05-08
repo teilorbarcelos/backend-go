@@ -18,8 +18,8 @@ type TemplateData struct {
 const repositoryTemplate = `package {{.LowerName}}
 
 import (
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/core/repository"
+	"backend-go/internal/core/models"
+	"backend-go/internal/core/repository"
 	"gorm.io/gorm"
 )
 
@@ -43,7 +43,7 @@ const serviceTemplate = `package {{.LowerName}}
 
 import (
 	"context"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/pkg/database"
 )
 
 type {{.Name}}Service struct {
@@ -83,7 +83,7 @@ const handlerTemplate = `package {{.LowerName}}
 import (
 	"net/http"
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/internal/core/handler"
+	"backend-go/internal/core/handler"
 )
 
 type {{.Name}}Handler struct {

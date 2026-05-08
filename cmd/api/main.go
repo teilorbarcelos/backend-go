@@ -4,17 +4,17 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/internal/app/auth"
-	"github.com/teilorbarcelos/backend-go/internal/app/product"
-	"github.com/teilorbarcelos/backend-go/internal/app/role"
-	"github.com/teilorbarcelos/backend-go/internal/app/user"
-	"github.com/teilorbarcelos/backend-go/internal/core/repository"
-	"github.com/teilorbarcelos/backend-go/internal/infra/session"
-	"github.com/teilorbarcelos/backend-go/internal/middleware"
-	"github.com/teilorbarcelos/backend-go/pkg/cache"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
-	"github.com/teilorbarcelos/backend-go/pkg/messaging"
+	"backend-go/internal/app/auth"
+	"backend-go/internal/app/product"
+	"backend-go/internal/app/role"
+	"backend-go/internal/app/user"
+	"backend-go/internal/core/repository"
+	"backend-go/internal/infra/session"
+	"backend-go/internal/middleware"
+	"backend-go/pkg/cache"
+	"backend-go/pkg/config"
+	"backend-go/pkg/database"
+	"backend-go/pkg/messaging"
 )
 
 func main() {

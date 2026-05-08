@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/pkg/security"
 )
 
 func TestCheckPermission(t *testing.T) {

@@ -3,9 +3,9 @@ package database
 import (
 	"log"
 
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/config"
+	"backend-go/pkg/security"
 	"gorm.io/gorm"
 )
 

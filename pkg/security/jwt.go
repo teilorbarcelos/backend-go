@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/pkg/config"
 )
 
 type Permission struct {

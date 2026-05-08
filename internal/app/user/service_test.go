@@ -8,11 +8,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/infra/session"
-	"github.com/teilorbarcelos/backend-go/pkg/cache"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/internal/core/models"
+	"backend-go/internal/infra/session"
+	"backend-go/pkg/cache"
+	"backend-go/pkg/config"
+	"backend-go/pkg/database"
 )
 
 type MockUserRepository struct {

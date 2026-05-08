@@ -8,7 +8,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/pkg/config"
 )
 
 func TestConnectRedis(t *testing.T) {

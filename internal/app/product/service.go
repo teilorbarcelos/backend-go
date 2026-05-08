@@ -2,8 +2,8 @@ package product
 
 import (
 	"context"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/database"
 )
 
 type ProductService struct {

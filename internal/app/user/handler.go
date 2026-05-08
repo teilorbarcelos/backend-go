@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/internal/core/handler"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/internal/core/handler"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/database"
 )
 
 type UserServiceI interface {

@@ -2,7 +2,7 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/internal/middleware"
+	"backend-go/internal/middleware"
 )
 
 func RegisterRoutes(rg *gin.RouterGroup, h *UserHandler) {

@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/pkg/database"
 	"gorm.io/gorm"
 )
 
