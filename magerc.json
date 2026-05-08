@@ -1,0 +1,50 @@
+{
+  "scripts": [
+    {
+      "name": "Install Dependencies",
+      "command": "go mod tidy"
+    },
+    {
+      "name": "Start Infrastructure",
+      "command": "make infra-up"
+    },
+    {
+      "name": "Stop Infrastructure",
+      "command": "make infra-down"
+    },
+    {
+      "name": "Start Development Server",
+      "command": "make dev"
+    },
+    {
+      "name": "Run Tests",
+      "command": "make test"
+    },
+    {
+      "name": "Run Coverage",
+      "command": "make coverage"
+    },
+    {
+      "name": "Generate Module (make generate name=Entity)",
+      "command": "make generate"
+    },
+    {
+      "name": "Install Storage: AWS S3",
+      "command": "make storage-driver name=s3"
+    },
+    {
+      "name": "Install Storage: Google Cloud (GCS)",
+      "command": "make storage-driver name=gcs"
+    },
+    {
+      "name": "Install Storage: Azure Blob",
+      "command": "make storage-driver name=azure"
+    }
+  ],
+  "replacements": [
+    {
+      "path": "go.mod",
+      "pattern": "github.com/teilorbarcelos/backend-go"
+    }
+  ]
+}
