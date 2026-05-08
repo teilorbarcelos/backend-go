@@ -7,10 +7,15 @@ import (
 	"backend-go/internal/core/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 func TestRunSeed_HashError(t *testing.T) {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
 	
 	// Migrate tables needed for RunSeed to execute without errors before reaching the hash check
 	db.AutoMigrate(

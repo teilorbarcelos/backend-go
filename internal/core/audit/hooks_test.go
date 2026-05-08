@@ -10,6 +10,7 @@ import (
 	"backend-go/pkg/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type AuditTestModel struct {
@@ -25,7 +26,11 @@ func TestMain(m *testing.M) {
 	
 	// Initialize local DB for testing
 	var err error
-	testDB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	testDB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -51,7 +56,7 @@ func TestAuditHooks(t *testing.T) {
 
 		// Verify log
 		var log models.AuditLog
-		err = db.Where("table_name = ? AND record_id = ? AND action = ?", "audit_test_models", model.ID, "CREATE").First(&log).Error
+		err = db.Where("table_name = ? AND record_id = ? AND action = ?", "audit_test_model", model.ID, "CREATE").First(&log).Error
 		assert.NoError(t, err)
 		assert.Contains(t, log.NewValues, "Create Test")
 
@@ -67,13 +72,13 @@ func TestAuditHooks(t *testing.T) {
 		assert.NotNil(t, log2.UserID)
 		assert.Equal(t, "test-user-id", *log2.UserID)
 
-		// Test ignoring audit_logs table
-		logRecord := &models.AuditLog{Action: "MANUAL", TableName: "audit_logs"}
+		// Test ignoring audit_log table
+		logRecord := &models.AuditLog{Action: "MANUAL", TableName: "audit_log"}
 		err = db.Create(logRecord).Error
 		assert.NoError(t, err)
 		
 		var count int64
-		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ?", "CREATE", "audit_logs").Count(&count)
+		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ?", "CREATE", "audit_log").Count(&count)
 		assert.Equal(t, int64(0), count)
 	})
 
@@ -162,7 +167,7 @@ func TestAuditHooks(t *testing.T) {
 		var log models.AuditLog
 		err = db.Where("record_id = ? AND action = ?", model.ID, "DELETE").First(&log).Error
 		assert.NoError(t, err)
-		assert.Equal(t, "audit_test_models", log.TableName)
+		assert.Equal(t, "audit_test_model", log.TableName)
 	})
 
 	t.Run("getRecordID Error Paths", func(t *testing.T) {
@@ -229,9 +234,9 @@ func TestAuditHooks_ErrorPaths(t *testing.T) {
 		auditUpdateHook(dbSession)
 	})
 
-	t.Run("Hooks ignore audit_logs table", func(t *testing.T) {
-		// Test update to audit_logs table
-		logRecord := &models.AuditLog{Action: "UPDATE", TableName: "audit_logs", RecordID: "some-id"}
+	t.Run("Hooks ignore audit_log table", func(t *testing.T) {
+		// Test update to audit_log table
+		logRecord := &models.AuditLog{Action: "UPDATE", TableName: "audit_log", RecordID: "some-id"}
 		db.Create(logRecord) // First create it
 		
 		logRecord.Action = "MANUAL"
@@ -240,8 +245,8 @@ func TestAuditHooks_ErrorPaths(t *testing.T) {
 		
 		// Verify no log was created for this update
 		var count int64
-		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ? AND record_id = ?", "UPDATE", "audit_logs", "some-id").Count(&count)
-		// It should only have 0 logs with action=UPDATE for the audit_logs table
+		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ? AND record_id = ?", "UPDATE", "audit_log", "some-id").Count(&count)
+		// It should only have 0 logs with action=UPDATE for the audit_log table
 		assert.Equal(t, int64(0), count)
 	})
 

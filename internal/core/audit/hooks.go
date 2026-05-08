@@ -17,7 +17,7 @@ func RegisterAuditHooks(db *gorm.DB) {
 }
 
 func auditCreateHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_logs" {
+	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
 		return
 	}
 
@@ -39,7 +39,7 @@ func auditCreateHook(db *gorm.DB) {
 }
 
 func auditUpdateHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_logs" {
+	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
 		return
 	}
 

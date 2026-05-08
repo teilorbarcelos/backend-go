@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type TestModel struct {
@@ -16,7 +17,12 @@ type TestModel struct {
 }
 
 func TestApplyFilters_Functionality(t *testing.T) {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{DryRun: true})
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		DryRun: true,
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
 
 	t.Run("Basic Equality Filter", func(t *testing.T) {
 		params := FilterParams{
@@ -70,10 +76,28 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		assert.Contains(t, sql, "LIMIT 10 OFFSET 10")
 	})
+
+	t.Run("Dot-prefixed Filter", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"Role.name": "Admin",
+			},
+			Order: Order{OrderBy: "Role.name"},
+		}
+		query := ApplyFilters(db.Model(&TestModel{}), params, nil)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.Contains(t, sql, "role.name = \"Admin\"")
+		assert.Contains(t, sql, "ORDER BY role.name")
+	})
 }
 
 func TestApplyFilters_Coverage(t *testing.T) {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{DryRun: true})
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		DryRun: true,
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
 
 	t.Run("Allowed Filters Validation", func(t *testing.T) {
 		allowed := map[string]bool{"name": true}

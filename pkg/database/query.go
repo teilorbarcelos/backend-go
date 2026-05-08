@@ -54,6 +54,12 @@ func ApplyFilters(db *gorm.DB, params FilterParams, allowedFilters map[string]bo
 			continue
 		}
 
+		// Se o campo contém um ponto (ex: Role.name), convertemos para minúsculo
+		// para bater com o padrão de tabela singular (ex: role.name)
+		if strings.Contains(fieldKey, ".") {
+			fieldKey = strings.ToLower(fieldKey)
+		}
+
 		// Adiciona a cláusula WHERE
 		query = query.Where(fmt.Sprintf("%s %s ?", fieldKey, operator), value)
 	}
@@ -86,11 +92,16 @@ func ApplyFilters(db *gorm.DB, params FilterParams, allowedFilters map[string]bo
 
 	// 3. Ordenação
 	if params.OrderBy != "" {
+		orderBy := params.OrderBy
+		if strings.Contains(orderBy, ".") {
+			orderBy = strings.ToLower(orderBy)
+		}
+
 		direction := "ASC"
 		if strings.ToUpper(params.OrderDirection) == "DESC" {
 			direction = "DESC"
 		}
-		query = query.Order(fmt.Sprintf("%s %s", params.OrderBy, direction))
+		query = query.Order(fmt.Sprintf("%s %s", orderBy, direction))
 	} else {
 		// Ordenação padrão
 		query = query.Order("created_at DESC")
