@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -46,7 +47,10 @@ func Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Injeta os dados do usuário no contexto para uso posterior nos handlers
+		// Injeta os dados do usuário no contexto para uso posterior nos handlers e audit hooks
+		ctx := context.WithValue(c.Request.Context(), "userID", claims.UserID)
+		c.Request = c.Request.WithContext(ctx)
+
 		c.Set("userID", claims.UserID)
 		c.Set("userEmail", claims.Email)
 		c.Set("userRoleID", claims.RoleID)

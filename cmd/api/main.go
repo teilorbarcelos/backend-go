@@ -38,6 +38,7 @@ func main() {
 
 	// Middlewares Globais
 	r.Use(middleware.CORS())
+	r.Use(middleware.RateLimitMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"context"
+
+	"github.com/teilorbarcelos/backend-go/pkg/database"
 	"gorm.io/gorm"
 )
 
@@ -12,6 +15,7 @@ type IRepository[T any] interface {
 	Update(id string, updates map[string]interface{}) error
 	Delete(id string) error     // Soft Delete
 	HardDelete(id string) error // Destrói do banco
+	SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]T, int64, error)
 }
 
 type BaseRepository[T any] struct {
@@ -20,6 +24,10 @@ type BaseRepository[T any] struct {
 
 func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
 	return &BaseRepository[T]{DB: db}
+}
+
+func (r *BaseRepository[T]) WithContext(ctx context.Context) *BaseRepository[T] {
+	return &BaseRepository[T]{DB: r.DB.WithContext(ctx)}
 }
 
 func (r *BaseRepository[T]) Create(entity *T) error {
@@ -76,4 +84,37 @@ func (r *BaseRepository[T]) Delete(id string) error {
 
 func (r *BaseRepository[T]) HardDelete(id string) error {
 	return r.DB.Unscoped().Where("id = ?", id).Delete(new(T)).Error
+}
+
+func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]T, int64, error) {
+	var entities []T
+	var total int64
+
+	// Criamos a base da query
+	query := r.DB.Model(new(T))
+
+	// Aplicamos os preloads
+	for _, p := range preloads {
+		query = query.Preload(p)
+	}
+
+	// Aplicamos os filtros dinâmicos (exceto paginação para o count)
+	query = database.ApplyFilters(query, params, allowedFilters)
+	
+	// Filtro base de segurança
+	if params.Filters["ignoreDefaultFilters"] != true {
+		query = query.Where("is_deleted = ?", false)
+	}
+
+	// Contamos o total sem o offset/limit
+	// Nota: Precisamos remover o offset/limit da query para o Count funcionar corretamente
+	countQuery := query.Session(&gorm.Session{}).Offset(-1).Limit(-1)
+	err := countQuery.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Executamos a busca final
+	err = query.Find(&entities).Error
+	return entities, total, err
 }

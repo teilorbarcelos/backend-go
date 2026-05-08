@@ -1,8 +1,10 @@
 package role
 
 import (
+	"context"
 	"github.com/teilorbarcelos/backend-go/internal/core/models"
 	"github.com/teilorbarcelos/backend-go/internal/infra/session"
+	"github.com/teilorbarcelos/backend-go/pkg/database"
 )
 
 type RoleService struct {
@@ -17,9 +19,9 @@ func NewRoleService(repo *RoleRepository, sessionMgr *session.SessionManager) *R
 	}
 }
 
-func (s *RoleService) ListFeatures() ([]models.Feature, error) {
+func (s *RoleService) ListFeatures(ctx context.Context) ([]models.Feature, error) {
 	var features []models.Feature
-	err := s.Repo.DB.Where("active = ?", true).Find(&features).Error
+	err := s.Repo.WithContext(ctx).DB.Where("active = ?", true).Find(&features).Error
 	return features, err
 }
 
@@ -29,51 +31,50 @@ type CreateRoleDTO struct {
 	Permissions []models.RoleFeature `json:"permissions"`
 }
 
-func (s *RoleService) Create(dto CreateRoleDTO) (*models.Role, error) {
-	// Em Go, simplificamos o slugify ou apenas usamos o ID fornecido/gerado.
-	// O Node usava slugify(name) como ID.
+func (s *RoleService) Create(ctx context.Context, dto CreateRoleDTO) (*models.Role, error) {
 	role := &models.Role{
 		Name:        dto.Name,
 		Description: dto.Description,
 		Active:      true,
 	}
-	// O BaseModel BeforeCreate vai gerar o UUID se não setarmos ID.
-	// Mas o Node usava slugify. Vou gerar um ID baseado no nome se possível para manter consistência.
-	// Se preferir UUID, deixe vazio. O Node usava slugify para roles fixas.
 	
-	err := s.Repo.CreateWithPermissions(role, dto.Permissions)
+	err := s.Repo.WithContext(ctx).CreateWithPermissions(role, dto.Permissions)
 	return role, err
 }
 
-func (s *RoleService) Update(id string, dto CreateRoleDTO) (*models.Role, error) {
+func (s *RoleService) Update(ctx context.Context, id string, dto CreateRoleDTO) (*models.Role, error) {
 	role := &models.Role{
 		Name:        dto.Name,
 		Description: dto.Description,
 	}
-	if err := s.Repo.UpdateWithPermissions(id, role, dto.Permissions); err != nil {
+	if err := s.Repo.WithContext(ctx).UpdateWithPermissions(id, role, dto.Permissions); err != nil {
 		return nil, err
 	}
 	s.SessionManager.InvalidateRoleSessions(id)
-	return s.Repo.FindByID(id)
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (s *RoleService) List(offset, limit int) ([]models.Role, int64, error) {
-	return s.Repo.FindAll(nil, offset, limit)
+func (s *RoleService) List(ctx context.Context, params database.FilterParams) ([]models.Role, int64, error) {
+	allowed := map[string]bool{
+		"name":   true,
+		"active": true,
+	}
+	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
 }
 
-func (s *RoleService) GetByID(id string) (*models.Role, error) {
-	return s.Repo.FindByID(id)
+func (s *RoleService) GetByID(ctx context.Context, id string) (*models.Role, error) {
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (s *RoleService) Delete(id string) error {
-	if err := s.Repo.Delete(id); err != nil {
+func (s *RoleService) Delete(ctx context.Context, id string) error {
+	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}
 	return s.SessionManager.InvalidateRoleSessions(id)
 }
 
-func (s *RoleService) SetStatus(id string, active bool) error {
-	if err := s.Repo.Update(id, map[string]interface{}{"active": active}); err != nil {
+func (s *RoleService) SetStatus(ctx context.Context, id string, active bool) error {
+	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {
 		return err
 	}
 	return s.SessionManager.InvalidateRoleSessions(id)

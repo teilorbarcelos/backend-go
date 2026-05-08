@@ -2,9 +2,8 @@ package role
 
 import (
 	"net/http"
-	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/teilorbarcelos/backend-go/internal/core/handler"
 )
 
 type RoleHandler struct {
@@ -16,7 +15,7 @@ func NewRoleHandler(service *RoleService) *RoleHandler {
 }
 
 func (h *RoleHandler) ListFeatures(c *gin.Context) {
-	res, err := h.Service.ListFeatures()
+	res, err := h.Service.ListFeatures(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -32,7 +31,7 @@ func (h *RoleHandler) Create(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.Create(dto)
+	res, err := h.Service.Create(c.Request.Context(), dto)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -49,7 +48,7 @@ func (h *RoleHandler) Update(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.Update(id, dto)
+	res, err := h.Service.Update(c.Request.Context(), id, dto)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -60,7 +59,7 @@ func (h *RoleHandler) Update(c *gin.Context) {
 
 func (h *RoleHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
-	res, err := h.Service.GetByID(id)
+	res, err := h.Service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "papel não encontrado"})
 		return
@@ -70,11 +69,9 @@ func (h *RoleHandler) GetByID(c *gin.Context) {
 }
 
 func (h *RoleHandler) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	offset := (page - 1) * limit
+	params := handler.ParseFilterParams(c)
 
-	items, total, err := h.Service.List(offset, limit)
+	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -83,13 +80,17 @@ func (h *RoleHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"items": items,
 		"total": total,
-		"page":  page,
-		"limit": limit,
+		"page":  params.Page,
+		"limit": params.Limit,
 	})
 }
 
 func (h *RoleHandler) ListAll(c *gin.Context) {
-	items, total, err := h.Service.List(0, 0)
+	params := handler.ParseFilterParams(c)
+	params.Limit = 0
+	params.Filters["ignoreDefaultFilters"] = true
+
+	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -103,7 +104,7 @@ func (h *RoleHandler) ListAll(c *gin.Context) {
 
 func (h *RoleHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.Service.Delete(id); err != nil {
+	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -121,7 +122,7 @@ func (h *RoleHandler) SetStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.Service.SetStatus(id, body.Active); err != nil {
+	if err := h.Service.SetStatus(c.Request.Context(), id, body.Active); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -1,11 +1,13 @@
 package user
 
 import (
+	"context"
 	"errors"
 
 	"github.com/teilorbarcelos/backend-go/internal/core/models"
 	"github.com/teilorbarcelos/backend-go/internal/infra/session"
 	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"github.com/teilorbarcelos/backend-go/pkg/database"
 	"github.com/teilorbarcelos/backend-go/pkg/security"
 )
 
@@ -37,7 +39,7 @@ type UpdateUserDTO struct {
 	Active   *bool  `json:"active"`
 }
 
-func (s *UserService) Create(dto CreateUserDTO) (*models.User, error) {
+func (s *UserService) Create(ctx context.Context, dto CreateUserDTO) (*models.User, error) {
 	hashedPassword, err := security.HashPassword(dto.Password)
 	if err != nil {
 		return nil, err
@@ -54,12 +56,12 @@ func (s *UserService) Create(dto CreateUserDTO) (*models.User, error) {
 		},
 	}
 
-	err = s.Repo.Create(user)
+	err = s.Repo.WithContext(ctx).Create(user)
 	return user, err
 }
 
-func (s *UserService) Update(id string, dto UpdateUserDTO) (*models.User, error) {
-	user, err := s.Repo.FindByID(id)
+func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) (*models.User, error) {
+	user, err := s.Repo.WithContext(ctx).FindByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -92,47 +94,53 @@ func (s *UserService) Update(id string, dto UpdateUserDTO) (*models.User, error)
 	}
 
 	if len(updates) > 0 {
-		if err := s.Repo.Update(id, updates); err != nil {
+		if err := s.Repo.WithContext(ctx).Update(id, updates); err != nil {
 			return nil, err
 		}
 	}
 
 	if dto.Password != "" {
 		hashedPassword, _ := security.HashPassword(dto.Password)
-		s.Repo.DB.Model(&models.Auth{}).Where("id = ?", user.IDAuth).Update("password", hashedPassword)
+		s.Repo.WithContext(ctx).DB.Model(&models.Auth{}).Where("id = ?", user.IDAuth).Update("password", hashedPassword)
 	}
 
 	// Invalida sessões se houver qualquer alteração (exceto talvez só nome, mas por segurança invalidamos)
 	s.SessionManager.InvalidateUserSessions(id, user.IDRole)
 
-	return s.Repo.FindByID(id)
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (s *UserService) List(offset, limit int) ([]models.User, int64, error) {
-	return s.Repo.FindAllWithRole(nil, offset, limit)
+func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
+	// Definimos os campos permitidos para filtro/busca no User
+	allowed := map[string]bool{
+		"name":   true,
+		"email":  true,
+		"active": true,
+	}
+	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed, "Role")
 }
 
-func (s *UserService) GetByID(id string) (*models.User, error) {
-	return s.Repo.FindByID(id)
+func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (s *UserService) Delete(id string) error {
-	user, err := s.Repo.FindByID(id)
+func (s *UserService) Delete(ctx context.Context, id string) error {
+	user, err := s.Repo.WithContext(ctx).FindByID(id)
 	if err == nil && user.Email == config.AppConfig.FirstUserEmail {
 		return errors.New("o usuário administrador inicial não pode ser excluído")
 	}
-	if err := s.Repo.Delete(id); err != nil {
+	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}
 	return s.SessionManager.InvalidateUserSessions(id, user.IDRole)
 }
 
-func (s *UserService) SetStatus(id string, active bool) error {
-	user, err := s.Repo.FindByID(id)
+func (s *UserService) SetStatus(ctx context.Context, id string, active bool) error {
+	user, err := s.Repo.WithContext(ctx).FindByID(id)
 	if err == nil && user.Email == config.AppConfig.FirstUserEmail && !active {
 		return errors.New("o usuário administrador inicial não pode ser desativado")
 	}
-	if err := s.Repo.Update(id, map[string]interface{}{"active": active}); err != nil {
+	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {
 		return err
 	}
 	return s.SessionManager.InvalidateUserSessions(id, user.IDRole)

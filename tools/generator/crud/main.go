@@ -15,22 +15,18 @@ type TemplateData struct {
 	LowerName string
 }
 
-const modelTemplate = `package {{.LowerName}}
+const repositoryTemplate = `package {{.LowerName}}
 
-import "github.com/teilorbarcelos/backend-go/internal/core/models"
+import (
+	"github.com/teilorbarcelos/backend-go/internal/core/models"
+	"github.com/teilorbarcelos/backend-go/internal/core/repository"
+	"gorm.io/gorm"
+)
 
 type {{.Name}} struct {
 	models.BaseModel
 	Name string ` + "`gorm:\"type:varchar(255);not null\" json:\"name\"`" + `
 }
-`
-
-const repositoryTemplate = `package {{.LowerName}}
-
-import (
-	"github.com/teilorbarcelos/backend-go/internal/core/repository"
-	"gorm.io/gorm"
-)
 
 type {{.Name}}Repository struct {
 	*repository.BaseRepository[{{.Name}}]
@@ -43,34 +39,42 @@ func New{{.Name}}Repository(db *gorm.DB) *{{.Name}}Repository {
 }
 `
 
-const usecaseTemplate = `package {{.LowerName}}
+const serviceTemplate = `package {{.LowerName}}
 
-type {{.Name}}UseCase struct {
-	repo *{{.Name}}Repository
+import (
+	"context"
+	"github.com/teilorbarcelos/backend-go/pkg/database"
+)
+
+type {{.Name}}Service struct {
+	Repo *{{.Name}}Repository
 }
 
-func New{{.Name}}UseCase(repo *{{.Name}}Repository) *{{.Name}}UseCase {
-	return &{{.Name}}UseCase{repo: repo}
+func New{{.Name}}Service(repo *{{.Name}}Repository) *{{.Name}}Service {
+	return &{{.Name}}Service{Repo: repo}
 }
 
-func (u *{{.Name}}UseCase) Create(entity *{{.Name}}) error {
-	return u.repo.Create(entity)
+func (s *{{.Name}}Service) Create(ctx context.Context, entity *{{.Name}}) error {
+	return s.Repo.WithContext(ctx).Create(entity)
 }
 
-func (u *{{.Name}}UseCase) FindAll(filter map[string]interface{}, offset, limit int) ([]{{.Name}}, int64, error) {
-	return u.repo.FindAll(filter, offset, limit)
+func (s *{{.Name}}Service) List(ctx context.Context, params database.FilterParams) ([]{{.Name}}, int64, error) {
+	allowed := map[string]bool{
+		"name": true,
+	}
+	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
 }
 
-func (u *{{.Name}}UseCase) FindByID(id string) (*{{.Name}}, error) {
-	return u.repo.FindByID(id)
+func (s *{{.Name}}Service) GetByID(ctx context.Context, id string) (*{{.Name}}, error) {
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (u *{{.Name}}UseCase) Update(id string, updates map[string]interface{}) error {
-	return u.repo.Update(id, updates)
+func (s *{{.Name}}Service) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+	return s.Repo.WithContext(ctx).Update(id, updates)
 }
 
-func (u *{{.Name}}UseCase) Delete(id string) error {
-	return u.repo.Delete(id)
+func (s *{{.Name}}Service) Delete(ctx context.Context, id string) error {
+	return s.Repo.WithContext(ctx).Delete(id)
 }
 `
 
@@ -78,28 +82,16 @@ const handlerTemplate = `package {{.LowerName}}
 
 import (
 	"net/http"
-	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/teilorbarcelos/backend-go/internal/core/handler"
 )
 
 type {{.Name}}Handler struct {
-	usecase *{{.Name}}UseCase
+	Service *{{.Name}}Service
 }
 
-func New{{.Name}}Handler(usecase *{{.Name}}UseCase) *{{.Name}}Handler {
-	return &{{.Name}}Handler{usecase: usecase}
-}
-
-func (h *{{.Name}}Handler) RegisterRoutes(router *gin.RouterGroup) {
-	group := router.Group("/{{.LowerName}}")
-	{
-		group.POST("/", h.Create)
-		group.GET("/", h.FindAll)
-		group.GET("/:id", h.FindByID)
-		group.PATCH("/:id", h.Update)
-		group.DELETE("/:id", h.Delete)
-	}
+func New{{.Name}}Handler(service *{{.Name}}Service) *{{.Name}}Handler {
+	return &{{.Name}}Handler{Service: service}
 }
 
 func (h *{{.Name}}Handler) Create(c *gin.Context) {
@@ -109,7 +101,7 @@ func (h *{{.Name}}Handler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := h.usecase.Create(&entity); err != nil {
+	if err := h.Service.Create(c.Request.Context(), &entity); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -117,23 +109,26 @@ func (h *{{.Name}}Handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, entity)
 }
 
-func (h *{{.Name}}Handler) FindAll(c *gin.Context) {
-	// Exemplo simples de extração de offset/limit
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+func (h *{{.Name}}Handler) List(c *gin.Context) {
+	params := handler.ParseFilterParams(c)
 	
-	entities, total, err := h.usecase.FindAll(map[string]interface{}{}, offset, limit)
+	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": entities, "total": total})
+	c.JSON(http.StatusOK, gin.H{
+		"items": items,
+		"total": total,
+		"page":  params.Page,
+		"limit": params.Limit,
+	})
 }
 
-func (h *{{.Name}}Handler) FindByID(c *gin.Context) {
+func (h *{{.Name}}Handler) GetByID(c *gin.Context) {
 	id := c.Param("id")
-	entity, err := h.usecase.FindByID(id)
+	entity, err := h.Service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Não encontrado"})
 		return
@@ -150,7 +145,7 @@ func (h *{{.Name}}Handler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := h.usecase.Update(id, updates); err != nil {
+	if err := h.Service.Update(c.Request.Context(), id, updates); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -160,7 +155,7 @@ func (h *{{.Name}}Handler) Update(c *gin.Context) {
 
 func (h *{{.Name}}Handler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.usecase.Delete(id); err != nil {
+	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -187,13 +182,13 @@ func writeTemplate(path, tmpl string, data TemplateData) {
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("Uso: go run tools/generator/index.go <ModuleName>")
+		log.Fatal("Uso: go run tools/generator/crud/main.go <ModuleName>")
 	}
 
 	name := os.Args[1]
 	lowerName := strings.ToLower(name)
 	
-	dir := filepath.Join("internal", "modules", lowerName)
+	dir := filepath.Join("internal", "app", lowerName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		log.Fatalf("Erro ao criar diretório %s: %v", dir, err)
 	}
@@ -203,9 +198,8 @@ func main() {
 		LowerName: lowerName,
 	}
 
-	writeTemplate(filepath.Join(dir, "model.go"), modelTemplate, data)
 	writeTemplate(filepath.Join(dir, "repository.go"), repositoryTemplate, data)
-	writeTemplate(filepath.Join(dir, "usecase.go"), usecaseTemplate, data)
+	writeTemplate(filepath.Join(dir, "service.go"), serviceTemplate, data)
 	writeTemplate(filepath.Join(dir, "handler.go"), handlerTemplate, data)
 
 	fmt.Printf("\nMódulo '%s' gerado com sucesso em '%s'.\n", name, dir)

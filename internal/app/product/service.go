@@ -1,7 +1,9 @@
 package product
 
 import (
+	"context"
 	"github.com/teilorbarcelos/backend-go/internal/core/models"
+	"github.com/teilorbarcelos/backend-go/pkg/database"
 )
 
 type ProductService struct {
@@ -21,7 +23,7 @@ type CreateProductDTO struct {
 	Description string  `json:"description"`
 }
 
-func (s *ProductService) Create(dto CreateProductDTO) (*models.Product, error) {
+func (s *ProductService) Create(ctx context.Context, dto CreateProductDTO) (*models.Product, error) {
 	product := &models.Product{
 		Name:        dto.Name,
 		SKU:         dto.SKU,
@@ -31,30 +33,36 @@ func (s *ProductService) Create(dto CreateProductDTO) (*models.Product, error) {
 		Description: dto.Description,
 		Active:      true,
 	}
-	err := s.Repo.Create(product)
+	err := s.Repo.WithContext(ctx).Create(product)
 	return product, err
 }
 
-func (s *ProductService) Update(id string, updates map[string]interface{}) (*models.Product, error) {
-	err := s.Repo.Update(id, updates)
+func (s *ProductService) Update(ctx context.Context, id string, updates map[string]interface{}) (*models.Product, error) {
+	err := s.Repo.WithContext(ctx).Update(id, updates)
 	if err != nil {
 		return nil, err
 	}
-	return s.Repo.FindByID(id)
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (s *ProductService) List(offset, limit int) ([]models.Product, int64, error) {
-	return s.Repo.FindAll(nil, offset, limit)
+func (s *ProductService) List(ctx context.Context, params database.FilterParams) ([]models.Product, int64, error) {
+	allowed := map[string]bool{
+		"name":     true,
+		"sku":      true,
+		"category": true,
+		"active":   true,
+	}
+	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
 }
 
-func (s *ProductService) GetByID(id string) (*models.Product, error) {
-	return s.Repo.FindByID(id)
+func (s *ProductService) GetByID(ctx context.Context, id string) (*models.Product, error) {
+	return s.Repo.WithContext(ctx).FindByID(id)
 }
 
-func (s *ProductService) Delete(id string) error {
-	return s.Repo.Delete(id)
+func (s *ProductService) Delete(ctx context.Context, id string) error {
+	return s.Repo.WithContext(ctx).Delete(id)
 }
 
-func (s *ProductService) SetStatus(id string, active bool) error {
-	return s.Repo.Update(id, map[string]interface{}{"active": active})
+func (s *ProductService) SetStatus(ctx context.Context, id string, active bool) error {
+	return s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active})
 }
