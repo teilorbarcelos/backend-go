@@ -2,10 +2,16 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"backend-go/internal/infra/session"
 	"backend-go/internal/middleware"
 )
 
-func RegisterRoutes(rg *gin.RouterGroup, h *UserHandler) {
+func RegisterRoutes(rg *gin.RouterGroup, db *gorm.DB, sm *session.SessionManager) {
+	repo := NewUserRepository(db)
+	svc := NewUserService(repo, sm)
+	h := NewUserHandler(svc)
+
 	userRoutes := rg.Group("/user")
 	{
 		userRoutes.GET("/:id", middleware.CheckPermission("user", "view"), h.GetByID)

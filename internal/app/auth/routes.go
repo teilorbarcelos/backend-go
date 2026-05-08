@@ -2,17 +2,22 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"backend-go/internal/core/repository"
 )
 
-// RegisterPublicRoutes registra as rotas que não exigem autenticação
-func RegisterPublicRoutes(rg *gin.RouterGroup, h *AuthHandler) {
-	authGroup := rg.Group("/auth")
+// RegisterRoutes inicializa o módulo e registra as rotas públicas e protegidas
+func RegisterRoutes(publicRG *gin.RouterGroup, protectedRG *gin.RouterGroup, db *gorm.DB) {
+	repo := repository.NewAuthRepository(db)
+	svc := NewAuthService(repo)
+	h := NewAuthHandler(svc)
+
+	// Rotas Públicas
+	authGroup := publicRG.Group("/auth")
 	{
 		authGroup.POST("/login", h.Login)
 	}
-}
 
-// RegisterProtectedRoutes registra as rotas que exigem autenticação
-func RegisterProtectedRoutes(rg *gin.RouterGroup, h *AuthHandler) {
-	rg.GET("/auth/me", h.Me)
+	// Rotas Protegidas
+	protectedRG.GET("/auth/me", h.Me)
 }

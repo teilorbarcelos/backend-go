@@ -2,10 +2,16 @@ package role
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"backend-go/internal/infra/session"
 	"backend-go/internal/middleware"
 )
 
-func RegisterRoutes(rg *gin.RouterGroup, h *RoleHandler) {
+func RegisterRoutes(rg *gin.RouterGroup, db *gorm.DB, sm *session.SessionManager) {
+	repo := NewRoleRepository(db)
+	svc := NewRoleService(repo, sm)
+	h := NewRoleHandler(svc)
+
 	roleRoutes := rg.Group("/role")
 	{
 		roleRoutes.GET("/features", middleware.CheckPermission("role", "view"), h.ListFeatures)

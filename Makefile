@@ -13,7 +13,7 @@ test:
 
 coverage:
 	@echo "Gerando relatório de cobertura..."
-	@export ENVIRONMENT=test && go test -coverpkg=./... -coverprofile=coverage.out $$(go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' ./...)
+	@export ENVIRONMENT=test && go test -count=1 -coverpkg=./... -coverprofile=coverage.out $$(go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' ./...)
 	@echo "\n--- Resumo de Cobertura ---"
 	@go tool cover -func=coverage.out
 	@echo "\n--- Linhas Não Cobertas ---"

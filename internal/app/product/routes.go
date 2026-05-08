@@ -2,10 +2,15 @@ package product
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"backend-go/internal/middleware"
 )
 
-func RegisterRoutes(rg *gin.RouterGroup, h *ProductHandler) {
+func RegisterRoutes(rg *gin.RouterGroup, db *gorm.DB) {
+	repo := NewProductRepository(db)
+	svc := NewProductService(repo)
+	h := NewProductHandler(svc)
+
 	productRoutes := rg.Group("/product")
 	{
 		productRoutes.GET("/:id", middleware.CheckPermission("product", "view"), h.GetByID)

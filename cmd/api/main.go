@@ -8,7 +8,6 @@ import (
 	"backend-go/internal/app/product"
 	"backend-go/internal/app/role"
 	"backend-go/internal/app/user"
-	"backend-go/internal/core/repository"
 	"backend-go/internal/infra/session"
 	"backend-go/internal/middleware"
 	"backend-go/pkg/cache"
@@ -47,40 +46,21 @@ func main() {
 		})
 	})
 
-	// Repositories, Services e Handlers
+	// Repositories, Services e Handlers (Modularizado)
 	sessionMgr := session.NewSessionManager()
-
-	authRepo := repository.NewAuthRepository(database.DB)
-	authService := auth.NewAuthService(authRepo)
-	authHandler := auth.NewAuthHandler(authService)
-
-	roleRepo := role.NewRoleRepository(database.DB)
-	roleService := role.NewRoleService(roleRepo, sessionMgr)
-	roleHandler := role.NewRoleHandler(roleService)
-
-	userRepo := user.NewUserRepository(database.DB)
-	userService := user.NewUserService(userRepo, sessionMgr)
-	userHandler := user.NewUserHandler(userService)
-
-	productRepo := product.NewProductRepository(database.DB)
-	productService := product.NewProductService(productRepo)
-	productHandler := product.NewProductHandler(productService)
 
 	// Grupo V1
 	v1 := r.Group("/v1")
 	{
-		// Rotas Públicas
-		auth.RegisterPublicRoutes(v1, authHandler)
-
-		// Rotas Privadas (Protegidas por Autenticação)
+		// Grupo Protegido (Autenticação)
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
-		{
-			auth.RegisterProtectedRoutes(protected, authHandler)
-			user.RegisterRoutes(protected, userHandler)
-			role.RegisterRoutes(protected, roleHandler)
-			product.RegisterRoutes(protected, productHandler)
-		}
+
+		// Registro dos Módulos
+		auth.RegisterRoutes(v1, protected, database.DB)
+		user.RegisterRoutes(protected, database.DB, sessionMgr)
+		role.RegisterRoutes(protected, database.DB, sessionMgr)
+		product.RegisterRoutes(protected, database.DB)
 	}
 
 	addr := config.AppConfig.Host + ":" + config.AppConfig.Port
