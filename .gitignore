@@ -36,3 +36,6 @@ go.work.sum
 
 # Logs
 *.log
+
+# Air hot reload
+tmp/

@@ -5,7 +5,15 @@ ENVIRONMENT ?= development
 GO_TEST_FLAGS ?= -v
 
 dev:
-	go run cmd/api/main.go
+	@if command -v air > /dev/null; then \
+	    air; \
+	elif [ -f $$(go env GOPATH)/bin/air ]; then \
+	    $$(go env GOPATH)/bin/air; \
+	else \
+	    echo "Air não encontrado. Instalando..."; \
+	    go install github.com/air-verse/air@latest; \
+	    $$(go env GOPATH)/bin/air; \
+	fi
 
 test:
 	@echo "Executando testes em ambiente de: test"
