@@ -69,55 +69,17 @@ func main() {
 	// Grupo V1
 	v1 := r.Group("/v1")
 	{
-		// Públicos
-		authGroup := v1.Group("/auth")
-		{
-			authGroup.POST("/login", authHandler.Login)
-		}
+		// Rotas Públicas
+		auth.RegisterPublicRoutes(v1, authHandler)
 
-		// Privados (Protegidos por Autenticação)
+		// Rotas Privadas (Protegidas por Autenticação)
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
 		{
-			// Auth (Me)
-			protected.GET("/auth/me", authHandler.Me)
-
-			// User
-			userRoutes := protected.Group("/user")
-			{
-				userRoutes.GET("/:id", middleware.CheckPermission("user", "view"), userHandler.GetByID)
-				userRoutes.GET("", middleware.CheckPermission("user", "view"), userHandler.List)
-				userRoutes.GET("/all", middleware.CheckPermission("user", "view"), userHandler.ListAll)
-				userRoutes.POST("", middleware.CheckPermission("user", "create"), userHandler.Create)
-				userRoutes.PUT("/:id", middleware.CheckPermission("user", "create"), userHandler.Update)
-				userRoutes.DELETE("/:id", middleware.CheckPermission("user", "delete"), userHandler.Delete)
-				userRoutes.PATCH("/:id/status", middleware.CheckPermission("user", "activate"), userHandler.SetStatus)
-			}
-
-			// Role
-			roleRoutes := protected.Group("/role")
-			{
-				roleRoutes.GET("/features", middleware.CheckPermission("role", "view"), roleHandler.ListFeatures)
-				roleRoutes.GET("/:id", middleware.CheckPermission("role", "view"), roleHandler.GetByID)
-				roleRoutes.GET("", middleware.CheckPermission("role", "view"), roleHandler.List)
-				roleRoutes.GET("/all", middleware.CheckPermission("role", "view"), roleHandler.ListAll)
-				roleRoutes.POST("", middleware.CheckPermission("role", "create"), roleHandler.Create)
-				roleRoutes.PUT("/:id", middleware.CheckPermission("role", "create"), roleHandler.Update)
-				roleRoutes.DELETE("/:id", middleware.CheckPermission("role", "delete"), roleHandler.Delete)
-				roleRoutes.PATCH("/:id/status", middleware.CheckPermission("role", "activate"), roleHandler.SetStatus)
-			}
-
-			// Product
-			productRoutes := protected.Group("/product")
-			{
-				productRoutes.GET("/:id", middleware.CheckPermission("product", "view"), productHandler.GetByID)
-				productRoutes.GET("", middleware.CheckPermission("product", "view"), productHandler.List)
-				productRoutes.GET("/all", middleware.CheckPermission("product", "view"), productHandler.ListAll)
-				productRoutes.POST("", middleware.CheckPermission("product", "create"), productHandler.Create)
-				productRoutes.PUT("/:id", middleware.CheckPermission("product", "create"), productHandler.Update)
-				productRoutes.DELETE("/:id", middleware.CheckPermission("product", "delete"), productHandler.Delete)
-				productRoutes.PATCH("/:id/status", middleware.CheckPermission("product", "activate"), productHandler.SetStatus)
-			}
+			auth.RegisterProtectedRoutes(protected, authHandler)
+			user.RegisterRoutes(protected, userHandler)
+			role.RegisterRoutes(protected, roleHandler)
+			product.RegisterRoutes(protected, productHandler)
 		}
 	}
 

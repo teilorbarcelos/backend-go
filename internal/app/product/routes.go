@@ -1,0 +1,19 @@
+package product
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/teilorbarcelos/backend-go/internal/middleware"
+)
+
+func RegisterRoutes(rg *gin.RouterGroup, h *ProductHandler) {
+	productRoutes := rg.Group("/product")
+	{
+		productRoutes.GET("/:id", middleware.CheckPermission("product", "view"), h.GetByID)
+		productRoutes.GET("", middleware.CheckPermission("product", "view"), h.List)
+		productRoutes.GET("/all", middleware.CheckPermission("product", "view"), h.ListAll)
+		productRoutes.POST("", middleware.CheckPermission("product", "create"), h.Create)
+		productRoutes.PUT("/:id", middleware.CheckPermission("product", "create"), h.Update)
+		productRoutes.DELETE("/:id", middleware.CheckPermission("product", "delete"), h.Delete)
+		productRoutes.PATCH("/:id/status", middleware.CheckPermission("product", "activate"), h.SetStatus)
+	}
+}
