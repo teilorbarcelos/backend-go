@@ -11,11 +11,16 @@ import (
 
 var RedisClient *redis.Client
 
+var (
+	logFatalf    = log.Fatalf
+	miniredisRun = miniredis.Run
+)
+
 func ConnectRedis() {
 	if config.AppConfig.Environment == "test" {
-		mr, err := miniredis.Run()
+		mr, err := miniredisRun()
 		if err != nil {
-			log.Fatalf("Falha ao iniciar miniredis: %v", err)
+			logFatalf("Falha ao iniciar miniredis: %v", err)
 		}
 		RedisClient = redis.NewClient(&redis.Options{
 			Addr: mr.Addr(),
@@ -23,13 +28,13 @@ func ConnectRedis() {
 	} else {
 		opts, err := redis.ParseURL(config.AppConfig.RedisUrl)
 		if err != nil {
-			log.Fatalf("Falha ao parsear a URL do Redis: %v", err)
+			logFatalf("Falha ao parsear a URL do Redis: %v", err)
 		}
 		RedisClient = redis.NewClient(opts)
 	}
 
 	if err := RedisClient.Ping(context.Background()).Err(); err != nil {
-		log.Fatalf("Falha ao conectar no Redis: %v", err)
+		logFatalf("Falha ao conectar no Redis: %v", err)
 	}
 
 	log.Println("Conexão com Redis estabelecida com sucesso.")
