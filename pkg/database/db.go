@@ -14,6 +14,12 @@ import (
 
 var DB *gorm.DB
 
+var (
+	logFatalf      = log.Fatalf
+	gormOpen       = gorm.Open
+	dbAutoMigrate  = func(db *gorm.DB, dst ...interface{}) error { return db.AutoMigrate(dst...) }
+)
+
 func ConnectDB() {
 	var err error
 	
@@ -26,13 +32,13 @@ func ConnectDB() {
 	}
 
 	if config.AppConfig.Environment == "test" {
-		DB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), gormConfig)
+		DB, err = gormOpen(sqlite.Open("file::memory:?cache=shared"), gormConfig)
 	} else {
-		DB, err = gorm.Open(postgres.Open(config.AppConfig.DBUrl), gormConfig)
+		DB, err = gormOpen(postgres.Open(config.AppConfig.DBUrl), gormConfig)
 	}
 
 	if err != nil {
-		log.Fatalf("Falha ao conectar no banco de dados: %v", err)
+		logFatalf("Falha ao conectar no banco de dados: %v", err)
 	}
 
 	// Registrar Hooks de Auditoria
@@ -40,7 +46,8 @@ func ConnectDB() {
 
 	// Rodar Migrations Automáticas
 	log.Println("Rodando AutoMigrate...")
-	err = DB.AutoMigrate(
+	err = dbAutoMigrate(
+		DB,
 		&models.AuditLog{},
 		&models.Role{},
 		&models.Feature{},
@@ -50,7 +57,7 @@ func ConnectDB() {
 		&models.Product{},
 	)
 	if err != nil {
-		log.Fatalf("Erro no AutoMigrate: %v", err)
+		logFatalf("Erro no AutoMigrate: %v", err)
 	}
 
 	// Popular o banco com papéis padrão
