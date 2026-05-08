@@ -34,7 +34,7 @@ func ApplyFilters(db *gorm.DB, params FilterParams, allowedFilters map[string]bo
 
 	// 1. Filtros de Igualdade e Ranges (_start, _end)
 	for key, value := range params.Filters {
-		if value == nil || value == "" {
+		if value == nil || value == "" || key == "ignoreDefaultFilters" {
 			continue
 		}
 
