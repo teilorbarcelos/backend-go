@@ -23,14 +23,6 @@ func NewRoleRepository(db *gorm.DB) *RoleRepository {
 	}
 }
 
-func (r *RoleRepository) FindByID(id string) (*models.Role, error) {
-	var role models.Role
-	err := r.DB.Preload("RoleFeature").Where("id = ? AND is_deleted = ?", id, false).First(&role).Error
-	if err != nil {
-		return nil, err
-	}
-	return &role, nil
-}
 
 func (r *RoleRepository) CreateWithPermissions(role *models.Role, permissions []models.RoleFeature) error {
 	return r.DB.Transaction(func(tx *gorm.DB) error {

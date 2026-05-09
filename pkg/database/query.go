@@ -46,6 +46,10 @@ type SearchConfig struct {
 func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]FilterConfig, searchable []SearchConfig) (*gorm.DB, error) {
 	query := db
 	joinedRelations := make(map[string]bool)
+	likeOperator := "ILIKE"
+	if db.Dialector.Name() == "sqlite" {
+		likeOperator = "LIKE"
+	}
 
 	// Tenta determinar a tabela principal para resolver ambiguidades (ex: user.name)
 	mainTable := ""
@@ -113,7 +117,7 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 		// Se não veio do sufixo _start/_end, usamos o operador da config ou o padrão
 		if operator == "" {
 			if config.Operator == "contains" {
-				operator = "ILIKE"
+				operator = likeOperator
 				value = "%" + fmt.Sprint(value) + "%"
 			} else if config.Operator != "" {
 				operator = strings.ToUpper(config.Operator)
@@ -174,7 +178,7 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 				quotedField = query.Statement.Quote(fieldTarget)
 			}
 
-			orConditions = append(orConditions, fmt.Sprintf("%s ILIKE ?", quotedField))
+			orConditions = append(orConditions, fmt.Sprintf("%s %s ?", quotedField, likeOperator))
 			orValues = append(orValues, "%"+params.SearchWord+"%")
 		}
 

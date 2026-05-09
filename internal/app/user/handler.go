@@ -8,6 +8,7 @@ import (
 	"backend-go/internal/core/handler"
 	"backend-go/internal/core/models"
 	"backend-go/pkg/database"
+	"gorm.io/gorm"
 )
 
 type UserServiceI interface {
@@ -36,7 +37,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 
 	res, err := h.Service.Create(c.Request.Context(), dto)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
@@ -53,7 +54,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 
 	res, err := h.Service.Update(c.Request.Context(), id, dto)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
@@ -64,7 +65,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	res, err := h.Service.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "usuário não encontrado"})
+		h.handleError(c, err)
 		return
 	}
 
@@ -76,7 +77,7 @@ func (h *UserHandler) List(c *gin.Context) {
 
 	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
@@ -95,7 +96,7 @@ func (h *UserHandler) ListAll(c *gin.Context) {
 
 	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
@@ -108,7 +109,7 @@ func (h *UserHandler) ListAll(c *gin.Context) {
 func (h *UserHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
@@ -126,9 +127,17 @@ func (h *UserHandler) SetStatus(c *gin.Context) {
 	}
 
 	if err := h.Service.SetStatus(c.Request.Context(), id, body.Active); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "status atualizado com sucesso"})
+}
+
+func (h *UserHandler) handleError(c *gin.Context, err error) {
+	if err == gorm.ErrRecordNotFound {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recurso não encontrado"})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }

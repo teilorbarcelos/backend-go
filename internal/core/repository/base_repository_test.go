@@ -39,9 +39,14 @@ func TestBaseRepository_FindAll(t *testing.T) {
 		assert.Len(t, products, 1)
 	})
 
-	t.Run("Find All error case", func(t *testing.T) {
+	t.Run("Find All error case - invalid column", func(t *testing.T) {
 		filter := map[string]interface{}{"non_existent_column": "value"}
 		_, _, err := repo.FindAll(filter, 0, 0)
+		assert.Error(t, err)
+	})
+
+	t.Run("Find All error case - invalid preload", func(t *testing.T) {
+		_, _, err := repo.FindAll(nil, 0, 0, "InvalidAssociation")
 		assert.Error(t, err)
 	})
 }
