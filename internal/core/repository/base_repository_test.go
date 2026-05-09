@@ -90,7 +90,7 @@ func TestBaseRepository_SearchPaginated_Coverage(t *testing.T) {
 				"ignoreDefaultFilters": true,
 			},
 		}
-		_, _, err := repo.SearchPaginated(params, nil)
+		_, _, err := repo.SearchPaginated(params, nil, nil)
 		assert.NoError(t, err)
 	})
 
@@ -98,7 +98,7 @@ func TestBaseRepository_SearchPaginated_Coverage(t *testing.T) {
 		// User has Role and Auth preloads
 		userRepo := NewBaseRepository[models.User](database.DB)
 		params := database.FilterParams{}
-		_, _, err := userRepo.SearchPaginated(params, nil, "Role")
+		_, _, err := userRepo.SearchPaginated(params, nil, nil, "Role")
 		assert.NoError(t, err)
 	})
 
@@ -106,10 +106,55 @@ func TestBaseRepository_SearchPaginated_Coverage(t *testing.T) {
 		// Using an invalid filter to trigger a SQL error during Count
 		params := database.FilterParams{
 			Filters: map[string]interface{}{
-				"non_existent_column": "value",
+				"invalid_column": "value",
 			},
 		}
-		_, _, err := repo.SearchPaginated(params, nil)
+		// Precisamos que o campo seja "permitido" para chegar na query, mas ele não existe no banco
+		filterable := map[string]database.FilterConfig{
+			"invalid_column": {},
+		}
+		_, _, err := repo.SearchPaginated(params, filterable, nil)
 		assert.Error(t, err)
+	})
+
+	t.Run("Error Case - ApplyFilters", func(t *testing.T) {
+		params := database.FilterParams{
+			Filters: map[string]interface{}{
+				"unauthorized_column": "value",
+			},
+		}
+		filterable := map[string]database.FilterConfig{
+			"authorized_column": {},
+		}
+		_, _, err := repo.SearchPaginated(params, filterable, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "não está disponível")
+	})
+
+	t.Run("Error Case - Invalid OrderBy", func(t *testing.T) {
+		params := database.FilterParams{
+			Order: database.Order{
+				OrderBy: "invalid_field",
+			},
+		}
+		filterable := map[string]database.FilterConfig{
+			"valid_field": {},
+		}
+		_, _, err := repo.SearchPaginated(params, filterable, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "ordenação por 'invalid_field' não está disponível")
+	})
+
+	t.Run("Error Case - Invalid Search Field", func(t *testing.T) {
+		params := database.FilterParams{
+			SearchWord:   "test",
+			SearchFields: "invalid_search",
+		}
+		searchable := []database.SearchConfig{
+			{Key: "valid_search"},
+		}
+		_, _, err := repo.SearchPaginated(params, nil, searchable)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "campo de busca 'invalid_search' não está disponível")
 	})
 }

@@ -60,8 +60,8 @@ func (m *MockUserRepository) FindAllWithRole(filter map[string]interface{}, offs
 	return args.Get(0).([]models.User), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockUserRepository) SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]models.User, int64, error) {
-	args := m.Called(params, allowedFilters, preloads)
+func (m *MockUserRepository) SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error) {
+	args := m.Called(params, filterable, searchable, preloads)
 	return args.Get(0).([]models.User), args.Get(1).(int64), args.Error(2)
 }
 

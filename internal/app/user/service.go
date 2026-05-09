@@ -19,7 +19,7 @@ type UserRepositoryI interface {
 	FindByEmail(email string, preloads ...string) (*models.User, error)
 	UpdatePassword(authID string, password string) error
 	FindAllWithRole(filter map[string]interface{}, offset, limit int) ([]models.User, int64, error)
-	SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]models.User, int64, error)
+	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error)
 	WithContext(ctx context.Context) UserRepositoryI
 }
 
@@ -79,7 +79,7 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 	}
 
 	updates := make(map[string]interface{})
-	
+
 	// Proteção: Não permite desativar o primeiro usuário
 	if user.Email == config.AppConfig.FirstUserEmail {
 		if dto.Active != nil && !*dto.Active {
@@ -127,13 +127,21 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 }
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
-	// Definimos os campos permitidos para filtro/busca no User
-	allowed := map[string]bool{
-		"name":   true,
-		"email":  true,
-		"active": true,
+	// Definimos os campos permitidos para filtro/busca no User seguindo o padrão Node.js
+	filterable := map[string]database.FilterConfig{
+		"name":      {Operator: "contains"},
+		"email":     {Operator: "equals"},
+		"active":    {Type: "boolean"},
+		"Role.name": {Relation: "nested"},
 	}
-	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed, "Role")
+
+	searchable := []database.SearchConfig{
+		{Key: "name"},
+		{Key: "email"},
+		{Key: "Role.name", Relation: "nested"},
+	}
+
+	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable, "Role")
 }
 
 func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {

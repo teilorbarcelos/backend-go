@@ -28,7 +28,7 @@ coverage:
 	@go tool cover -func=coverage.out | grep -v "100.0%" || echo "Parabéns! 100% de cobertura atingida."
 
 coverage-html:
-	@export ENVIRONMENT=test && go test -coverpkg=./... -coverprofile=coverage.out $$(go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' ./...)
+	@export ENVIRONMENT=test && go test -count=1 -coverpkg=./... -coverprofile=coverage.out $$(go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' ./...)
 	@go tool cover -html=coverage.out
 
 # Geradores
