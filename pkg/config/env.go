@@ -22,6 +22,11 @@ type Config struct {
 
 var AppConfig Config
 
+var (
+	logFatalf      = log.Fatalf
+	viperUnmarshal = viper.Unmarshal
+)
+
 func LoadConfig() {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
@@ -39,7 +44,7 @@ func LoadConfig() {
 		log.Printf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)
 	}
 
-	if err := viper.Unmarshal(&AppConfig); err != nil {
-		log.Fatalf("Falha ao parsear configurações: %v", err)
+	if err := viperUnmarshal(&AppConfig); err != nil {
+		logFatalf("Falha ao parsear configurações: %v", err)
 	}
 }

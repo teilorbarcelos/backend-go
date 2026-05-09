@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/pkg/security"
 )
 
 // CheckPermission verifica se o usuário autenticado tem permissão para a feature e ação solicitada.

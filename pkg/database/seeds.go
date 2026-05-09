@@ -3,11 +3,13 @@ package database
 import (
 	"log"
 
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/config"
+	"backend-go/pkg/security"
 	"gorm.io/gorm"
 )
+
+var hashPassword = security.HashPassword
 
 type FeatureData struct {
 	Key         string
@@ -116,7 +118,7 @@ func RunSeed(db *gorm.DB) {
 	if adminCount == 0 {
 		log.Printf("Criando usuário administrador inicial: %s", config.AppConfig.FirstUserEmail)
 
-		hashedPassword, err := security.HashPassword(config.AppConfig.FirstUserPassword)
+		hashedPassword, err := hashPassword(config.AppConfig.FirstUserPassword)
 		if err != nil {
 			log.Printf("Erro ao hashear senha do administrador: %v", err)
 		} else {

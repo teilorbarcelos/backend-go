@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/pkg/cache"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/pkg/cache"
+	"backend-go/pkg/config"
 )
 
 func RateLimitMiddleware() gin.HandlerFunc {

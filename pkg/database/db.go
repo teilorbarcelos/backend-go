@@ -3,30 +3,46 @@ package database
 import (
 	"log"
 
-	"github.com/teilorbarcelos/backend-go/internal/core/audit"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
+	"backend-go/internal/core/audit"
+	"backend-go/internal/core/models"
+	"backend-go/pkg/config"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
 var DB *gorm.DB
+
+var (
+	logFatalf      = log.Fatalf
+	gormOpen       = gorm.Open
+	dbAutoMigrate  = func(db *gorm.DB, dst ...interface{}) error { return db.AutoMigrate(dst...) }
+)
 
 func ConnectDB() {
 	var err error
 	
 	gormConfig := &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
 	}
 
 	if config.AppConfig.Environment == "production" {
 		gormConfig.Logger = logger.Default.LogMode(logger.Error)
 	}
 
-	DB, err = gorm.Open(postgres.Open(config.AppConfig.DBUrl), gormConfig)
+	if config.AppConfig.Environment == "test" {
+		DB, err = gormOpen(sqlite.Open("file::memory:?cache=shared"), gormConfig)
+	} else {
+		DB, err = gormOpen(postgres.Open(config.AppConfig.DBUrl), gormConfig)
+	}
+
 	if err != nil {
-		log.Fatalf("Falha ao conectar no banco de dados: %v", err)
+		logFatalf("Falha ao conectar no banco de dados: %v", err)
 	}
 
 	// Registrar Hooks de Auditoria
@@ -34,7 +50,8 @@ func ConnectDB() {
 
 	// Rodar Migrations Automáticas
 	log.Println("Rodando AutoMigrate...")
-	err = DB.AutoMigrate(
+	err = dbAutoMigrate(
+		DB,
 		&models.AuditLog{},
 		&models.Role{},
 		&models.Feature{},
@@ -44,7 +61,7 @@ func ConnectDB() {
 		&models.Product{},
 	)
 	if err != nil {
-		log.Fatalf("Erro no AutoMigrate: %v", err)
+		logFatalf("Erro no AutoMigrate: %v", err)
 	}
 
 	// Popular o banco com papéis padrão

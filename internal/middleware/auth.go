@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/pkg/cache"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/pkg/cache"
+	"backend-go/pkg/security"
 )
 
 // Authenticate é um middleware que valida o token JWT no header Authorization.

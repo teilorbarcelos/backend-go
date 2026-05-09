@@ -4,19 +4,31 @@ import (
 	"context"
 	"errors"
 
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/infra/session"
-	"github.com/teilorbarcelos/backend-go/pkg/config"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/internal/core/models"
+	"backend-go/internal/infra/session"
+	"backend-go/pkg/config"
+	"backend-go/pkg/database"
+	"backend-go/pkg/security"
 )
 
+type UserRepositoryI interface {
+	Create(user *models.User) error
+	Update(id string, updates map[string]interface{}) error
+	Delete(id string) error
+	FindByID(id string) (*models.User, error)
+	FindByEmail(email string, preloads ...string) (*models.User, error)
+	UpdatePassword(authID string, password string) error
+	FindAllWithRole(filter map[string]interface{}, offset, limit int) ([]models.User, int64, error)
+	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error)
+	WithContext(ctx context.Context) UserRepositoryI
+}
+
 type UserService struct {
-	Repo           *UserRepository
+	Repo           UserRepositoryI
 	SessionManager *session.SessionManager
 }
 
-func NewUserService(repo *UserRepository, sessionMgr *session.SessionManager) *UserService {
+func NewUserService(repo UserRepositoryI, sessionMgr *session.SessionManager) *UserService {
 	return &UserService{
 		Repo:           repo,
 		SessionManager: sessionMgr,
@@ -67,7 +79,7 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 	}
 
 	updates := make(map[string]interface{})
-	
+
 	// Proteção: Não permite desativar o primeiro usuário
 	if user.Email == config.AppConfig.FirstUserEmail {
 		if dto.Active != nil && !*dto.Active {
@@ -101,7 +113,11 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 
 	if dto.Password != "" {
 		hashedPassword, _ := security.HashPassword(dto.Password)
-		s.Repo.WithContext(ctx).DB.Model(&models.Auth{}).Where("id = ?", user.IDAuth).Update("password", hashedPassword)
+		if user.IDAuth != nil {
+			if err := s.Repo.WithContext(ctx).UpdatePassword(*user.IDAuth, hashedPassword); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Invalida sessões se houver qualquer alteração (exceto talvez só nome, mas por segurança invalidamos)
@@ -111,13 +127,21 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 }
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
-	// Definimos os campos permitidos para filtro/busca no User
-	allowed := map[string]bool{
-		"name":   true,
-		"email":  true,
-		"active": true,
+	// Definimos os campos permitidos para filtro/busca no User seguindo o padrão Node.js
+	filterable := map[string]database.FilterConfig{
+		"name":      {Operator: "contains"},
+		"email":     {Operator: "equals"},
+		"active":    {Type: "boolean"},
+		"Role.name": {Relation: "nested"},
 	}
-	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed, "Role")
+
+	searchable := []database.SearchConfig{
+		{Key: "name"},
+		{Key: "email"},
+		{Key: "Role.name", Relation: "nested"},
+	}
+
+	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable, "Role")
 }
 
 func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {
@@ -126,7 +150,10 @@ func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, err
 
 func (s *UserService) Delete(ctx context.Context, id string) error {
 	user, err := s.Repo.WithContext(ctx).FindByID(id)
-	if err == nil && user.Email == config.AppConfig.FirstUserEmail {
+	if err != nil {
+		return err
+	}
+	if user.Email == config.AppConfig.FirstUserEmail {
 		return errors.New("o usuário administrador inicial não pode ser excluído")
 	}
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
@@ -137,7 +164,10 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 
 func (s *UserService) SetStatus(ctx context.Context, id string, active bool) error {
 	user, err := s.Repo.WithContext(ctx).FindByID(id)
-	if err == nil && user.Email == config.AppConfig.FirstUserEmail && !active {
+	if err != nil {
+		return err
+	}
+	if user.Email == config.AppConfig.FirstUserEmail && !active {
 		return errors.New("o usuário administrador inicial não pode ser desativado")
 	}
 	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {

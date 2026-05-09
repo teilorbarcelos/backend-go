@@ -1,22 +1,44 @@
-.PHONY: dev test coverage generate storage-driver infra-up infra-down infra-stop infra-clean db-up redis-up app-up app-down
+.PHONY: dev test coverage coverage-html generate storage-driver infra-up infra-down infra-stop infra-clean db-up redis-up app-up app-down
+
+# Variáveis
+ENVIRONMENT ?= development
+GO_TEST_FLAGS ?= -v
 
 dev:
-	go run cmd/api/main.go
+	@if command -v air > /dev/null; then \
+	    air; \
+	elif [ -f $$(go env GOPATH)/bin/air ]; then \
+	    $$(go env GOPATH)/bin/air; \
+	else \
+	    echo "Air não encontrado. Instalando..."; \
+	    go install github.com/air-verse/air@latest; \
+	    $$(go env GOPATH)/bin/air; \
+	fi
 
 test:
-	go test ./...
+	@echo "Executando testes em ambiente de: test"
+	@export ENVIRONMENT=test && go test $(GO_TEST_FLAGS) ./...
 
 coverage:
-	go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+	@echo "Gerando relatório de cobertura..."
+	@export ENVIRONMENT=test && go test -count=1 -coverpkg=./... -coverprofile=coverage.out $$(go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' ./...)
+	@echo "\n--- Resumo de Cobertura ---"
+	@go tool cover -func=coverage.out
+	@echo "\n--- Linhas Não Cobertas ---"
+	@go tool cover -func=coverage.out | grep -v "100.0%" || echo "Parabéns! 100% de cobertura atingida."
 
-# Example: make generate name=Product
+coverage-html:
+	@export ENVIRONMENT=test && go test -count=1 -coverpkg=./... -coverprofile=coverage.out $$(go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' ./...)
+	@go tool cover -html=coverage.out
+
+# Geradores
 generate:
 	go run tools/generator/crud/main.go $(name)
 
-# Example: make storage-driver name=s3
 storage-driver:
 	go run tools/generator/storage/main.go $(name)
 
+# Infraestrutura
 infra-up:
 	docker compose -f docker-compose.infra.yml up -d
 

@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
+	"backend-go/internal/core/models"
 	"gorm.io/gorm"
 )
 

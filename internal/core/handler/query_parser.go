@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/pkg/database"
 )
 
 // ParseFilterParams extrai parâmetros de filtro de uma requisição Gin.
@@ -29,7 +29,7 @@ func ParseFilterParams(c *gin.Context) database.FilterParams {
 	// Captura todos os outros query params como filtros de igualdade ou range
 	for key, values := range c.Request.URL.Query() {
 		// Pula parâmetros reservados
-		if key == "page" || key == "limit" || key == "orderBy" || key == "orderDirection" || key == "searchWord" || key == "searchFields" {
+		if key == "page" || key == "limit" || key == "size" || key == "orderBy" || key == "orderDirection" || key == "sort" || key == "searchWord" || key == "searchFields" {
 			continue
 		}
 

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/core/repository"
-	"github.com/teilorbarcelos/backend-go/pkg/cache"
-	"github.com/teilorbarcelos/backend-go/pkg/security"
+	"backend-go/internal/core/models"
+	"backend-go/internal/core/repository"
+	"backend-go/pkg/cache"
+	"backend-go/pkg/security"
 )
 
 type AuthService struct {

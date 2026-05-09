@@ -3,7 +3,7 @@ package role
 import (
 	"net/http"
 	"github.com/gin-gonic/gin"
-	"github.com/teilorbarcelos/backend-go/internal/core/handler"
+	"backend-go/internal/core/handler"
 )
 
 type RoleHandler struct {

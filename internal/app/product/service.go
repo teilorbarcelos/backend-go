@@ -1,9 +1,9 @@
 package product
 
 import (
+	"backend-go/internal/core/models"
+	"backend-go/pkg/database"
 	"context"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
 )
 
 type ProductService struct {
@@ -46,13 +46,21 @@ func (s *ProductService) Update(ctx context.Context, id string, updates map[stri
 }
 
 func (s *ProductService) List(ctx context.Context, params database.FilterParams) ([]models.Product, int64, error) {
-	allowed := map[string]bool{
-		"name":     true,
-		"sku":      true,
-		"category": true,
-		"active":   true,
+	filterable := map[string]database.FilterConfig{
+		"name":     {Operator: "contains"},
+		"sku":      {Operator: "equals"},
+		"category": {Operator: "equals"},
+		"active":   {Type: "boolean"},
 	}
-	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
+
+	searchable := []database.SearchConfig{
+		{Key: "name"},
+		{Key: "sku"},
+		{Key: "category"},
+		{Key: "description"},
+	}
+
+	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable)
 }
 
 func (s *ProductService) GetByID(ctx context.Context, id string) (*models.Product, error) {

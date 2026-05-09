@@ -1,13 +1,20 @@
 package role
 
 import (
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/core/repository"
+	"context"
+	"backend-go/internal/core/models"
+	"backend-go/internal/core/repository"
 	"gorm.io/gorm"
 )
 
 type RoleRepository struct {
 	repository.BaseRepository[models.Role]
+}
+
+func (r *RoleRepository) WithContext(ctx context.Context) *RoleRepository {
+	return &RoleRepository{
+		BaseRepository: *r.BaseRepository.WithContext(ctx),
+	}
 }
 
 func NewRoleRepository(db *gorm.DB) *RoleRepository {

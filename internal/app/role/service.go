@@ -2,9 +2,9 @@ package role
 
 import (
 	"context"
-	"github.com/teilorbarcelos/backend-go/internal/core/models"
-	"github.com/teilorbarcelos/backend-go/internal/infra/session"
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/internal/core/models"
+	"backend-go/internal/infra/session"
+	"backend-go/pkg/database"
 )
 
 type RoleService struct {
@@ -55,11 +55,16 @@ func (s *RoleService) Update(ctx context.Context, id string, dto CreateRoleDTO) 
 }
 
 func (s *RoleService) List(ctx context.Context, params database.FilterParams) ([]models.Role, int64, error) {
-	allowed := map[string]bool{
-		"name":   true,
-		"active": true,
+	filterable := map[string]database.FilterConfig{
+		"name":   {Operator: "contains"},
+		"active": {Type: "boolean"},
 	}
-	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
+
+	searchable := []database.SearchConfig{
+		{Key: "name"},
+	}
+
+	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable)
 }
 
 func (s *RoleService) GetByID(ctx context.Context, id string) (*models.Role, error) {

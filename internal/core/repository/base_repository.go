@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/teilorbarcelos/backend-go/pkg/database"
+	"backend-go/pkg/database"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +15,7 @@ type IRepository[T any] interface {
 	Update(id string, updates map[string]interface{}) error
 	Delete(id string) error     // Soft Delete
 	HardDelete(id string) error // Destrói do banco
-	SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]T, int64, error)
+	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]T, int64, error)
 }
 
 type BaseRepository[T any] struct {
@@ -86,7 +86,7 @@ func (r *BaseRepository[T]) HardDelete(id string) error {
 	return r.DB.Unscoped().Where("id = ?", id).Delete(new(T)).Error
 }
 
-func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, allowedFilters map[string]bool, preloads ...string) ([]T, int64, error) {
+func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]T, int64, error) {
 	var entities []T
 	var total int64
 
@@ -99,7 +99,10 @@ func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, allowe
 	}
 
 	// Aplicamos os filtros dinâmicos (exceto paginação para o count)
-	query = database.ApplyFilters(query, params, allowedFilters)
+	query, err := database.ApplyFilters(query, params, filterable, searchable)
+	if err != nil {
+		return nil, 0, err
+	}
 	
 	// Filtro base de segurança
 	if params.Filters["ignoreDefaultFilters"] != true {
@@ -109,7 +112,7 @@ func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, allowe
 	// Contamos o total sem o offset/limit
 	// Nota: Precisamos remover o offset/limit da query para o Count funcionar corretamente
 	countQuery := query.Session(&gorm.Session{}).Offset(-1).Limit(-1)
-	err := countQuery.Count(&total).Error
+	err = countQuery.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
