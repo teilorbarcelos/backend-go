@@ -15,10 +15,9 @@ type UserRepositoryI interface {
 	Create(user *models.User) error
 	Update(id string, updates map[string]interface{}) error
 	Delete(id string) error
-	FindByID(id string) (*models.User, error)
+	FindByID(id string, preloads ...string) (*models.User, error)
 	FindByEmail(email string, preloads ...string) (*models.User, error)
 	UpdatePassword(authID string, password string) error
-	FindAllWithRole(filter map[string]interface{}, offset, limit int) ([]models.User, int64, error)
 	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error)
 	WithContext(ctx context.Context) UserRepositoryI
 }
@@ -73,7 +72,8 @@ func (s *UserService) Create(ctx context.Context, dto CreateUserDTO) (*models.Us
 }
 
 func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) (*models.User, error) {
-	user, err := s.Repo.WithContext(ctx).FindByID(id)
+	repo := s.Repo.WithContext(ctx)
+	user, err := repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 	}
 
 	if len(updates) > 0 {
-		if err := s.Repo.WithContext(ctx).Update(id, updates); err != nil {
+		if err := repo.Update(id, updates); err != nil {
 			return nil, err
 		}
 	}
@@ -114,16 +114,16 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 	if dto.Password != "" {
 		hashedPassword, _ := security.HashPassword(dto.Password)
 		if user.IDAuth != nil {
-			if err := s.Repo.WithContext(ctx).UpdatePassword(*user.IDAuth, hashedPassword); err != nil {
+			if err := repo.UpdatePassword(*user.IDAuth, hashedPassword); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	// Invalida sessões se houver qualquer alteração (exceto talvez só nome, mas por segurança invalidamos)
+	// Invalida sessões se houver qualquer alteração
 	s.SessionManager.InvalidateUserSessions(id, user.IDRole)
 
-	return s.Repo.WithContext(ctx).FindByID(id)
+	return repo.FindByID(id, "Auth", "Role")
 }
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
@@ -145,7 +145,7 @@ func (s *UserService) List(ctx context.Context, params database.FilterParams) ([
 }
 
 func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {
-	return s.Repo.WithContext(ctx).FindByID(id)
+	return s.Repo.WithContext(ctx).FindByID(id, "Auth", "Role")
 }
 
 func (s *UserService) Delete(ctx context.Context, id string) error {

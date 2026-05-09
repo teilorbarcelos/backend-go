@@ -10,8 +10,8 @@ import (
 // IRepository define os métodos padrões para todos os repositórios.
 type IRepository[T any] interface {
 	Create(entity *T) error
-	FindAll(filter map[string]interface{}, offset, limit int) ([]T, int64, error)
-	FindByID(id string) (*T, error)
+	FindAll(filter map[string]interface{}, offset, limit int, preloads ...string) ([]T, int64, error)
+	FindByID(id string, preloads ...string) (*T, error)
 	Update(id string, updates map[string]interface{}) error
 	Delete(id string) error     // Soft Delete
 	HardDelete(id string) error // Destrói do banco
@@ -34,11 +34,15 @@ func (r *BaseRepository[T]) Create(entity *T) error {
 	return r.DB.Create(entity).Error
 }
 
-func (r *BaseRepository[T]) FindAll(filter map[string]interface{}, offset, limit int) ([]T, int64, error) {
+func (r *BaseRepository[T]) FindAll(filter map[string]interface{}, offset, limit int, preloads ...string) ([]T, int64, error) {
 	var entities []T
 	var total int64
 
 	query := r.DB.Model(new(T)).Where("is_deleted = ?", false)
+
+	for _, p := range preloads {
+		query = query.Preload(p)
+	}
 
 	// Filtros dinâmicos básicos
 	for k, v := range filter {
@@ -61,9 +65,13 @@ func (r *BaseRepository[T]) FindAll(filter map[string]interface{}, offset, limit
 	return entities, total, err
 }
 
-func (r *BaseRepository[T]) FindByID(id string) (*T, error) {
+func (r *BaseRepository[T]) FindByID(id string, preloads ...string) (*T, error) {
 	var entity T
-	err := r.DB.Where("id = ? AND is_deleted = ?", id, false).First(&entity).Error
+	query := r.DB.Model(new(T))
+	for _, p := range preloads {
+		query = query.Preload(p)
+	}
+	err := query.Where("id = ? AND is_deleted = ?", id, false).First(&entity).Error
 	if err != nil {
 		return nil, err
 	}

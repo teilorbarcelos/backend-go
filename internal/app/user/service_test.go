@@ -34,8 +34,10 @@ func (m *MockUserRepository) Delete(id string) error {
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) FindByID(id string) (*models.User, error) {
-	args := m.Called(id)
+func (m *MockUserRepository) FindByID(id string, preloads ...string) (*models.User, error) {
+	// Variadic arguments in mock require special handling if we want to match them exactly,
+	// but usually we can just pass them to Called.
+	args := m.Called(id, preloads)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -55,10 +57,6 @@ func (m *MockUserRepository) UpdatePassword(authID string, password string) erro
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) FindAllWithRole(filter map[string]interface{}, offset, limit int) ([]models.User, int64, error) {
-	args := m.Called(filter, offset, limit)
-	return args.Get(0).([]models.User), args.Get(1).(int64), args.Error(2)
-}
 
 func (m *MockUserRepository) SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error) {
 	args := m.Called(params, filterable, searchable, preloads)
@@ -295,41 +293,49 @@ func TestUserService_SetStatus(t *testing.T) {
 }
 
 func TestUserService_ErrorPaths(t *testing.T) {
-	mockRepo := new(MockUserRepository)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(mockRepo, sessionMgr)
 	ctx := context.Background()
 
 	t.Run("Create Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
 		mockRepo.On("Create", mock.Anything).Return(errors.New("db error")).Once()
 		_, err := service.Create(ctx, CreateUserDTO{Password: "pass"})
 		assert.Error(t, err)
 	})
 
 	t.Run("Update FindByID Error", func(t *testing.T) {
-		mockRepo.On("FindByID", "1").Return(nil, errors.New("not found")).Once()
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
+		mockRepo.On("FindByID", "1", mock.Anything).Return(nil, errors.New("not found")).Once()
 		_, err := service.Update(ctx, "1", UpdateUserDTO{})
 		assert.Error(t, err)
 	})
 
 	t.Run("Update Repo Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
 		user := &models.User{Email: "test@test.com"}
-		mockRepo.On("FindByID", "1").Return(user, nil).Once()
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
 		_, err := service.Update(ctx, "1", UpdateUserDTO{Name: "New"})
 		assert.Error(t, err)
 	})
 
 	t.Run("Update Password Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
 		idAuth := "auth-id"
 		user := &models.User{Email: "test@test.com", IDAuth: &idAuth}
-		mockRepo.On("FindByID", "1").Return(user, nil).Once()
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once() // Only once because it fails early
 		mockRepo.On("UpdatePassword", idAuth, mock.Anything).Return(errors.New("pass error")).Once()
 		_, err := service.Update(ctx, "1", UpdateUserDTO{Password: "new-pass"})
 		assert.Error(t, err)
 	})
 
 	t.Run("Create Password Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
 		// Bcrypt has a maximum password length (72 bytes). 
 		// Providing a very long password should trigger an error in HashPassword.
 		longPass := make([]byte, 100)
@@ -341,28 +347,36 @@ func TestUserService_ErrorPaths(t *testing.T) {
 	})
 
 	t.Run("Delete FindByID Error", func(t *testing.T) {
-		mockRepo.On("FindByID", "1").Return(nil, errors.New("not found")).Once()
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
+		mockRepo.On("FindByID", "1", mock.Anything).Return(nil, errors.New("not found")).Once()
 		err := service.Delete(ctx, "1")
 		assert.Error(t, err)
 	})
 
 	t.Run("Delete Repo Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
 		user := &models.User{Email: "test@test.com"}
-		mockRepo.On("FindByID", "1").Return(user, nil).Once()
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Delete", "1").Return(errors.New("delete error")).Once()
 		err := service.Delete(ctx, "1")
 		assert.Error(t, err)
 	})
 
 	t.Run("SetStatus FindByID Error", func(t *testing.T) {
-		mockRepo.On("FindByID", "1").Return(nil, errors.New("not found")).Once()
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
+		mockRepo.On("FindByID", "1", mock.Anything).Return(nil, errors.New("not found")).Once()
 		err := service.SetStatus(ctx, "1", true)
 		assert.Error(t, err)
 	})
 
 	t.Run("SetStatus Repo Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
 		user := &models.User{Email: "test@test.com"}
-		mockRepo.On("FindByID", "1").Return(user, nil).Once()
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
 		err := service.SetStatus(ctx, "1", true)
 		assert.Error(t, err)

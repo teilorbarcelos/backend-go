@@ -51,7 +51,7 @@ func (s *RoleService) Update(ctx context.Context, id string, dto CreateRoleDTO) 
 		return nil, err
 	}
 	s.SessionManager.InvalidateRoleSessions(id)
-	return s.Repo.WithContext(ctx).FindByID(id)
+	return s.Repo.WithContext(ctx).FindByID(id, "RoleFeature")
 }
 
 func (s *RoleService) List(ctx context.Context, params database.FilterParams) ([]models.Role, int64, error) {
@@ -68,7 +68,7 @@ func (s *RoleService) List(ctx context.Context, params database.FilterParams) ([
 }
 
 func (s *RoleService) GetByID(ctx context.Context, id string) (*models.Role, error) {
-	return s.Repo.WithContext(ctx).FindByID(id)
+	return s.Repo.WithContext(ctx).FindByID(id, "RoleFeature")
 }
 
 func (s *RoleService) Delete(ctx context.Context, id string) error {

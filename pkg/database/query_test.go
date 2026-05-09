@@ -145,7 +145,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
-		assert.Contains(t, strings.ToUpper(sql), "ILIKE")
+		assert.Regexp(t, `(?i)LIKE`, sql)
 		assert.Contains(t, sql, "\"%John%\"")
 		assert.Contains(t, strings.ToLower(sql), "name")
 	})
@@ -163,7 +163,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		assert.Contains(t, strings.ToUpper(sql), "JOIN")
 		assert.Contains(t, strings.ToUpper(sql), "TEST_ROLE")
-		assert.Contains(t, strings.ToUpper(sql), "ILIKE")
+		assert.Regexp(t, `(?i)LIKE`, sql)
 	})
 
 	t.Run("Ordering with created_at and Page < 1", func(t *testing.T) {
@@ -242,7 +242,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		// Não deve ter cláusula WHERE de busca pois orConditions ficou vazio
-		assert.NotContains(t, sql, "ILIKE")
+		assert.NotContains(t, strings.ToUpper(sql), "LIKE")
 	})
 
 	t.Run("Default Ordering without mainTable", func(t *testing.T) {

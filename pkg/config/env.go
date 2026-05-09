@@ -37,6 +37,8 @@ func LoadConfig() {
 	viper.SetDefault("HOST", "0.0.0.0")
 	viper.SetDefault("RATE_LIMIT_MAX", 100)
 	viper.SetDefault("RATE_LIMIT_WINDOW", "1m")
+	viper.SetDefault("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+	viper.SetDefault("REDIS_URL", "redis://localhost:6379")
 	viper.SetDefault("FIRST_USER", "admin@email.com")
 	viper.SetDefault("FIRST_PASSWORD", "admin@123")
 
