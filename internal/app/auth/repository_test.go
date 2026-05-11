@@ -1,21 +1,22 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
 	"backend-go/pkg/database"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewAuthRepository(t *testing.T) {
-	repo := NewAuthRepository(database.DB)
+	repo := NewRepository(database.DB)
 	assert.NotNil(t, repo)
-	assert.Equal(t, database.DB, repo.DB)
 }
 
 func TestAuthRepository_FindByEmail(t *testing.T) {
-	repo := NewAuthRepository(database.DB)
+	repo := NewRepository(database.DB)
+	ctx := context.Background()
 
 	// Setup: Create Role, Auth and User
 	feature := models.Feature{
@@ -47,11 +48,11 @@ func TestAuthRepository_FindByEmail(t *testing.T) {
 	database.DB.Create(&user)
 
 	t.Run("Success", func(t *testing.T) {
-		found, err := repo.FindByEmail(user.Email)
+		found, err := repo.FindByEmail(ctx, user.Email)
 		assert.NoError(t, err)
 		assert.NotNil(t, found)
 		assert.Equal(t, user.ID, found.ID)
-		
+
 		// Verify preloads
 		assert.NotNil(t, found.Auth)
 		assert.Equal(t, *auth.Password, *found.Auth.Password)
@@ -61,7 +62,7 @@ func TestAuthRepository_FindByEmail(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		found, err := repo.FindByEmail("nonexistent@example.com")
+		found, err := repo.FindByEmail(ctx, "nonexistent@example.com")
 		assert.Error(t, err)
 		assert.Nil(t, found)
 	})

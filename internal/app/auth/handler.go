@@ -1,17 +1,19 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 
+	"backend-go/internal/core/domainerr"
 	"github.com/gin-gonic/gin"
 )
 
-type AuthHandler struct {
-	Service AuthServiceI
+type Handler struct {
+	service Service
 }
 
-func NewAuthHandler(service AuthServiceI) *AuthHandler {
-	return &AuthHandler{Service: service}
+func NewHandler(service Service) *Handler {
+	return &Handler{service: service}
 }
 
 type LoginRequest struct {
@@ -19,34 +21,53 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
 		return
 	}
 
-	res, err := h.Service.Login(req.Email, req.Password)
+	res, err := h.service.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, res)
 }
 
-func (h *AuthHandler) Me(c *gin.Context) {
+func (h *Handler) Me(c *gin.Context) {
 	email, exists := c.Get("userEmail")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "usuário não identificado"})
 		return
 	}
 
-	res, err := h.Service.GetMe(email.(string))
+	res, err := h.service.GetMe(c.Request.Context(), email.(string))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		h.handleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) handleError(c *gin.Context, err error) {
+	status := http.StatusInternalServerError
+	message := "erro interno do servidor"
+
+	switch {
+	case errors.Is(err, domainerr.ErrUserNotFound), errors.Is(err, domainerr.ErrInvalidCredentials):
+		status = http.StatusUnauthorized
+		message = err.Error()
+	case errors.Is(err, domainerr.ErrAccountDisabled):
+		status = http.StatusForbidden
+		message = err.Error()
+	case errors.Is(err, domainerr.ErrAuthNotConfigured):
+		status = http.StatusUnprocessableEntity
+		message = err.Error()
+	}
+
+	c.JSON(status, gin.H{"error": message})
 }

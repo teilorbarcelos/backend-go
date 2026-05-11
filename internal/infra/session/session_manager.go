@@ -10,9 +10,16 @@ import (
 	"backend-go/pkg/cache"
 )
 
+type SessionStore interface {
+	CreateSession(ctx context.Context, userId string, roleId string, tokenHash string, payload interface{}, expiration time.Duration) error
+	CreateRefreshToken(ctx context.Context, userId string, roleId string, refreshTokenHash string, expiration time.Duration) error
+	InvalidateUserSessions(userId string, roleId string) error
+	InvalidateRoleSessions(roleId string) error
+}
+
 type SessionManager struct{}
 
-func NewSessionManager() *SessionManager {
+func NewSessionManager() SessionStore {
 	return &SessionManager{}
 }
 

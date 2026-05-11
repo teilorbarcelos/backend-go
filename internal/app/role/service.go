@@ -19,10 +19,10 @@ type RoleServiceI interface {
 
 type RoleService struct {
 	Repo           RoleRepositoryI
-	SessionManager *session.SessionManager
+	SessionManager session.SessionStore
 }
 
-func NewRoleService(repo RoleRepositoryI, sessionMgr *session.SessionManager) *RoleService {
+func NewRoleService(repo RoleRepositoryI, sessionMgr session.SessionStore) *RoleService {
 	return &RoleService{
 		Repo:           repo,
 		SessionManager: sessionMgr,

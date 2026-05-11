@@ -7,10 +7,10 @@ import (
 )
 
 func RegisterRoutes(publicRG *gin.RouterGroup, protectedRG *gin.RouterGroup, db *gorm.DB) {
-	repo := NewAuthRepository(db)
+	repo := NewRepository(db)
 	sm := session.NewSessionManager()
-	svc := NewAuthService(repo, sm)
-	h := NewAuthHandler(svc)
+	svc := NewService(repo, sm)
+	h := NewHandler(svc)
 
 	authGroup := publicRG.Group("/auth")
 	{

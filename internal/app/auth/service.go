@@ -2,30 +2,30 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"log"
 	"time"
 
+	"backend-go/internal/core/domainerr"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/security"
 )
 
-type AuthServiceI interface {
-	Login(email, password string) (*LoginResponse, error)
-	GetMe(email string) (*LoginResponse, error)
+type Service interface {
+	Login(ctx context.Context, email, password string) (*LoginResponse, error)
+	GetMe(ctx context.Context, email string) (*LoginResponse, error)
 }
 
-type AuthService struct {
-	Repo           AuthRepositoryI
-	SessionManager *session.SessionManager
+type authService struct {
+	repo           Repository
+	sessionManager session.SessionStore
 	GenerateToken  func(id, email, idRole string, permissions []security.Permission) (string, error)
 }
 
-func NewAuthService(repo AuthRepositoryI, sessionMgr *session.SessionManager) *AuthService {
-	return &AuthService{
-		Repo:           repo,
-		SessionManager: sessionMgr,
+func NewService(repo Repository, sessionMgr session.SessionStore) Service {
+	return &authService{
+		repo:           repo,
+		sessionManager: sessionMgr,
 		GenerateToken:  security.GenerateToken,
 	}
 }
@@ -48,42 +48,42 @@ type LoginResponse struct {
 	Message      string       `json:"message,omitempty"`
 	Valid        bool         `json:"valid"`
 	Token        string       `json:"token,omitempty"`
-	RefreshToken string       `json:"refreshToken,omitempty"` // TODO: Implement Refresh Token logic
+	RefreshToken string       `json:"refreshToken,omitempty"`
 	User         UserResponse `json:"user"`
 }
 
-func (s *AuthService) Login(email, password string) (*LoginResponse, error) {
-	user, err := s.Repo.FindByEmail(email)
+func (s *authService) Login(ctx context.Context, email, password string) (*LoginResponse, error) {
+	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, errors.New("usuário não encontrado")
+		return nil, domainerr.ErrUserNotFound
 	}
 
 	if !user.Active || user.IsDeleted {
-		return nil, errors.New("conta desativada ou removida")
+		return nil, domainerr.ErrAccountDisabled
 	}
 
 	if user.Auth == nil || user.Auth.Password == nil {
-		return nil, errors.New("autenticação não configurada para este usuário")
+		return nil, domainerr.ErrAuthNotConfigured
 	}
 
 	if !security.CheckPasswordHash(password, *user.Auth.Password) {
-		return nil, errors.New("senha inválida")
+		return nil, domainerr.ErrInvalidCredentials
 	}
 
-	return s.prepareAuthResponse(user)
+	return s.prepareAuthResponse(ctx, user)
 }
 
-func (s *AuthService) GetMe(email string) (*LoginResponse, error) {
-	user, err := s.Repo.FindByEmail(email)
+func (s *authService) GetMe(ctx context.Context, email string) (*LoginResponse, error) {
+	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, errors.New("usuário não encontrado")
+		return nil, domainerr.ErrUserNotFound
 	}
 
 	if !user.Active || user.IsDeleted {
-		return nil, errors.New("conta desativada ou removida")
+		return nil, domainerr.ErrAccountDisabled
 	}
 
-	res, err := s.prepareAuthResponse(user)
+	res, err := s.prepareAuthResponse(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,27 @@ func (s *AuthService) GetMe(email string) (*LoginResponse, error) {
 	return res, nil
 }
 
-func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, error) {
+func (s *authService) prepareAuthResponse(ctx context.Context, user *models.User) (*LoginResponse, error) {
+	permissions := s.mapPermissions(user)
+
+	token, err := s.GenerateToken(user.ID, user.Email, user.IDRole, permissions)
+	if err != nil {
+		return nil, domainerr.ErrInternal
+	}
+
+	if err := s.createSession(ctx, user, token, permissions); err != nil {
+		log.Printf("[AuthService] Erro ao salvar sessão: %v", err)
+	}
+
+	return &LoginResponse{
+		Valid:        true,
+		Token:        token,
+		RefreshToken: token, // TODO: Implement proper Refresh Token logic
+		User:         s.mapToUserResponse(user, permissions),
+	}, nil
+}
+
+func (s *authService) mapPermissions(user *models.User) []security.Permission {
 	permissions := make([]security.Permission, 0)
 	for _, rf := range user.Role.RoleFeature {
 		permissions = append(permissions, security.Permission{
@@ -102,14 +122,10 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 			Activate: rf.Activate,
 		})
 	}
+	return permissions
+}
 
-	token, err := s.GenerateToken(user.ID, user.Email, user.IDRole, permissions)
-	if err != nil {
-		return nil, err
-	}
-
-	refreshToken := token
-
+func (s *authService) createSession(ctx context.Context, user *models.User, token string, permissions []security.Permission) error {
 	payload := map[string]interface{}{
 		"id":          user.ID,
 		"email":       user.Email,
@@ -118,43 +134,35 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 	}
 
 	tokenHash := security.SHA256(token)
-	refreshTokenHash := security.SHA256(refreshToken)
+	expireTime := 24 * time.Hour
+	refreshExpireTime := 7 * 24 * time.Hour
 
-	expireTime := 24 * 60 * 60
-	refreshExpireTime := 7 * 24 * 60 * 60
-
-	ctx := context.Background()
-	if err := s.SessionManager.CreateSession(ctx, user.ID, user.IDRole, tokenHash, payload, time.Duration(expireTime)*time.Second); err != nil {
-		log.Printf("[AuthService] Erro ao salvar sessão no Redis: %v", err)
+	if err := s.sessionManager.CreateSession(ctx, user.ID, user.IDRole, tokenHash, payload, expireTime); err != nil {
+		return err
 	}
-	if err := s.SessionManager.CreateRefreshToken(ctx, user.ID, user.IDRole, refreshTokenHash, time.Duration(refreshExpireTime)*time.Second); err != nil {
-		log.Printf("[AuthService] Erro ao salvar refresh token no Redis: %v", err)
-	}
+	return s.sessionManager.CreateRefreshToken(ctx, user.ID, user.IDRole, tokenHash, refreshExpireTime)
+}
 
-	return &LoginResponse{
-		Valid:        true,
-		Token:        token,
-		RefreshToken: refreshToken,
-		User: UserResponse{
-			ID:        user.ID,
-			Name:      user.Name,
-			Email:     user.Email,
-			Phone:     user.Phone,
-			Document:  user.Document,
-			Avatar:    user.Avatar,
-			Active:    user.Active,
-			IDRole:    user.IDRole,
-			CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			UpdatedAt: user.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			Role: map[string]interface{}{
-				"id":          user.Role.ID,
-				"name":        user.Role.Name,
-				"description": user.Role.Description,
-				"active":      user.Role.Active,
-				"created_at":  user.Role.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-				"updated_at":  user.Role.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-				"permissions": permissions,
-			},
+func (s *authService) mapToUserResponse(user *models.User, permissions []security.Permission) UserResponse {
+	return UserResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Phone:     user.Phone,
+		Document:  user.Document,
+		Avatar:    user.Avatar,
+		Active:    user.Active,
+		IDRole:    user.IDRole,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		Role: map[string]interface{}{
+			"id":          user.Role.ID,
+			"name":        user.Role.Name,
+			"description": user.Role.Description,
+			"active":      user.Role.Active,
+			"created_at":  user.Role.CreatedAt.Format(time.RFC3339),
+			"updated_at":  user.Role.UpdatedAt.Format(time.RFC3339),
+			"permissions": permissions,
 		},
-	}, nil
+	}
 }

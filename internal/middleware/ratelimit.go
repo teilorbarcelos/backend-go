@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -34,26 +33,48 @@ func RateLimitMiddleware() gin.HandlerFunc {
 		}
 
 		maxRequests := int64(config.AppConfig.RateLimitMax)
+		ctx := c.Request.Context()
 
-		ctx := context.Background()
+		pipe := cache.RedisClient.Pipeline()
+		incr := pipe.Incr(ctx, key)
+		ttl := pipe.TTL(ctx, key)
+		_, err = pipe.Exec(ctx)
 
-		current, err := cache.RedisClient.Get(ctx, key).Int64()
-		if err == nil && current >= maxRequests {
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error":   "Too Many Requests",
-				"message": "Você excedeu o limite de requisições. Tente novamente em breve.",
-			})
+		if err != nil && err != ctx.Err() {
+			c.Next()
 			return
 		}
 
-		pipe := cache.RedisClient.Pipeline()
-		pipe.Incr(ctx, key)
-		if current == 0 {
-			pipe.Expire(ctx, key, windowDuration)
+		currentCount := incr.Val()
+
+		if currentCount == 1 || ttl.Val() < 0 {
+			cache.RedisClient.Expire(ctx, key, windowDuration)
+			ttl = cache.RedisClient.TTL(ctx, key)
 		}
-		_, _ = pipe.Exec(ctx)
+
+		remaining := maxRequests - currentCount
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		resetInSeconds := int64(ttl.Val().Seconds())
 
 		c.Header("X-RateLimit-Limit", strconv.FormatInt(maxRequests, 10))
+		c.Header("X-RateLimit-Remaining", strconv.FormatInt(remaining, 10))
+		c.Header("X-RateLimit-Reset", strconv.FormatInt(resetInSeconds, 10))
+
+		if currentCount > maxRequests {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error":   "Too Many Requests",
+				"message": "Você excedeu o limite de requisições. Tente novamente em breve.",
+				"details": gin.H{
+					"limit":     maxRequests,
+					"remaining": 0,
+					"reset_in":  resetInSeconds,
+				},
+			})
+			return
+		}
 
 		c.Next()
 	}

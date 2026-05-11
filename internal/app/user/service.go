@@ -24,10 +24,10 @@ type UserRepositoryI interface {
 
 type UserService struct {
 	Repo           UserRepositoryI
-	SessionManager *session.SessionManager
+	SessionManager session.SessionStore
 }
 
-func NewUserService(repo UserRepositoryI, sessionMgr *session.SessionManager) *UserService {
+func NewUserService(repo UserRepositoryI, sessionMgr session.SessionStore) *UserService {
 	return &UserService{
 		Repo:           repo,
 		SessionManager: sessionMgr,

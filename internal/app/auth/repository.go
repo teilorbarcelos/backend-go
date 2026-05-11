@@ -1,28 +1,36 @@
 package auth
 
 import (
+	"context"
+
 	"backend-go/internal/core/models"
 	"backend-go/internal/core/repository"
 	"gorm.io/gorm"
 )
 
-type AuthRepositoryI interface {
-	FindByEmail(email string) (*models.User, error)
+type Repository interface {
+	FindByEmail(ctx context.Context, email string) (*models.User, error)
 }
 
-type AuthRepository struct {
+type authRepository struct {
 	repository.BaseRepository[models.User]
 }
 
-func NewAuthRepository(db *gorm.DB) *AuthRepository {
-	return &AuthRepository{
+func NewRepository(db *gorm.DB) Repository {
+	return &authRepository{
 		BaseRepository: *repository.NewBaseRepository[models.User](db),
 	}
 }
 
-func (r *AuthRepository) FindByEmail(email string) (*models.User, error) {
+func (r *authRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	err := r.DB.Preload("Auth").Preload("Role").Preload("Role.RoleFeature").Where("email = ?", email).First(&user).Error
+	err := r.DB.WithContext(ctx).
+		Preload("Auth").
+		Preload("Role").
+		Preload("Role.RoleFeature").
+		Where("email = ?", email).
+		First(&user).Error
+
 	if err != nil {
 		return nil, err
 	}

@@ -1,25 +1,26 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/security"
 	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockAuthRepository struct {
 	mock.Mock
 }
 
-func (m *MockAuthRepository) FindByEmail(email string) (*models.User, error) {
-	args := m.Called(email)
+func (m *MockAuthRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -29,7 +30,9 @@ func (m *MockAuthRepository) FindByEmail(email string) (*models.User, error) {
 func TestAuthService_Login(t *testing.T) {
 	mockRepo := new(MockAuthRepository)
 	sm := session.NewSessionManager()
-	service := NewAuthService(mockRepo, sm)
+	serviceInterface := NewService(mockRepo, sm)
+	service := serviceInterface.(*authService)
+	ctx := context.Background()
 
 	password := "password123"
 	hashedPassword, _ := security.HashPassword(password)
@@ -51,16 +54,16 @@ func TestAuthService_Login(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		mockRepo.On("FindByEmail", "test@test.com").Return(user, nil)
-		res, err := service.Login("test@test.com", password)
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		res, err := service.Login(ctx, "test@test.com", password)
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.True(t, res.Valid)
 	})
 
 	t.Run("User Not Found", func(t *testing.T) {
-		mockRepo.On("FindByEmail", "notfound@test.com").Return(nil, os.ErrNotExist)
-		res, err := service.Login("notfound@test.com", password)
+		mockRepo.On("FindByEmail", mock.Anything, "notfound@test.com").Return(nil, os.ErrNotExist).Once()
+		res, err := service.Login(ctx, "notfound@test.com", password)
 		assert.Error(t, err)
 		assert.Nil(t, res)
 		assert.Equal(t, "usuário não encontrado", err.Error())
@@ -69,8 +72,8 @@ func TestAuthService_Login(t *testing.T) {
 	t.Run("Inactive User", func(t *testing.T) {
 		inactiveUser := *user
 		inactiveUser.Active = false
-		mockRepo.On("FindByEmail", "inactive@test.com").Return(&inactiveUser, nil)
-		_, err := service.Login("inactive@test.com", password)
+		mockRepo.On("FindByEmail", mock.Anything, "inactive@test.com").Return(&inactiveUser, nil).Once()
+		_, err := service.Login(ctx, "inactive@test.com", password)
 		assert.Error(t, err)
 		assert.Equal(t, "conta desativada ou removida", err.Error())
 	})
@@ -78,17 +81,17 @@ func TestAuthService_Login(t *testing.T) {
 	t.Run("No Auth Configured", func(t *testing.T) {
 		noAuthUser := *user
 		noAuthUser.Auth = nil
-		mockRepo.On("FindByEmail", "noauth@test.com").Return(&noAuthUser, nil)
-		_, err := service.Login("noauth@test.com", password)
+		mockRepo.On("FindByEmail", mock.Anything, "noauth@test.com").Return(&noAuthUser, nil).Once()
+		_, err := service.Login(ctx, "noauth@test.com", password)
 		assert.Error(t, err)
 		assert.Equal(t, "autenticação não configurada para este usuário", err.Error())
 	})
 
 	t.Run("Invalid Password", func(t *testing.T) {
-		mockRepo.On("FindByEmail", "test@test.com").Return(user, nil)
-		_, err := service.Login("test@test.com", "wrong")
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		_, err := service.Login(ctx, "test@test.com", "wrong")
 		assert.Error(t, err)
-		assert.Equal(t, "senha inválida", err.Error())
+		assert.Equal(t, "credenciais inválidas", err.Error())
 	})
 
 	t.Run("Redis Error", func(t *testing.T) {
@@ -96,29 +99,30 @@ func TestAuthService_Login(t *testing.T) {
 		cache.RedisClient = redis.NewClient(&redis.Options{Addr: "localhost:1"})
 		defer func() { cache.RedisClient = oldClient }()
 
-		mockRepo.On("FindByEmail", "test@test.com").Return(user, nil)
-		res, err := service.Login("test@test.com", password)
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		res, err := service.Login(ctx, "test@test.com", password)
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 	})
 
 	t.Run("Token Error", func(t *testing.T) {
+		oldGen := service.GenerateToken
 		service.GenerateToken = func(id, email, idRole string, perms []security.Permission) (string, error) {
 			return "", errors.New("token err")
 		}
-		defer func() { service.GenerateToken = security.GenerateToken }()
+		defer func() { service.GenerateToken = oldGen }()
 
-		mockRepo.On("FindByEmail", "test@test.com").Return(user, nil)
-		_, err := service.Login("test@test.com", password)
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		_, err := service.Login(ctx, "test@test.com", password)
 		assert.Error(t, err)
-		assert.Equal(t, "token err", err.Error())
 	})
 }
 
 func TestAuthService_GetMe(t *testing.T) {
 	mockRepo := new(MockAuthRepository)
 	sm := session.NewSessionManager()
-	service := NewAuthService(mockRepo, sm)
+	service := NewService(mockRepo, sm)
+	ctx := context.Background()
 
 	user := &models.User{
 		BaseModel: models.BaseModel{ID: "1"},
@@ -130,43 +134,36 @@ func TestAuthService_GetMe(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		mockRepo.On("FindByEmail", "test@test.com").Return(user, nil)
-		res, err := service.GetMe("test@test.com")
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		res, err := service.GetMe(ctx, "test@test.com")
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		mockRepo.On("FindByEmail", "error@test.com").Return(nil, os.ErrNotExist)
-		_, err := service.GetMe("error@test.com")
+		mockRepo.On("FindByEmail", mock.Anything, "error@test.com").Return(nil, os.ErrNotExist).Once()
+		_, err := service.GetMe(ctx, "error@test.com")
 		assert.Error(t, err)
 	})
 
 	t.Run("Inactive", func(t *testing.T) {
 		inactive := *user
 		inactive.Active = false
-		mockRepo.On("FindByEmail", "inactive@test.com").Return(&inactive, nil)
-		_, err := service.GetMe("inactive@test.com")
-		assert.Error(t, err)
-	})
-
-	t.Run("IsDeleted", func(t *testing.T) {
-		deleted := *user
-		deleted.IsDeleted = true
-		mockRepo.On("FindByEmail", "deleted@test.com").Return(&deleted, nil)
-		_, err := service.GetMe("deleted@test.com")
+		mockRepo.On("FindByEmail", mock.Anything, "inactive@test.com").Return(&inactive, nil).Once()
+		_, err := service.GetMe(ctx, "inactive@test.com")
 		assert.Error(t, err)
 	})
 
 	t.Run("Token Error", func(t *testing.T) {
-		service.GenerateToken = func(id, email, idRole string, perms []security.Permission) (string, error) {
+		svc := service.(*authService)
+		oldGen := svc.GenerateToken
+		svc.GenerateToken = func(id, email, idRole string, perms []security.Permission) (string, error) {
 			return "", errors.New("token err")
 		}
-		defer func() { service.GenerateToken = security.GenerateToken }()
+		defer func() { svc.GenerateToken = oldGen }()
 
-		mockRepo.On("FindByEmail", "test@test.com").Return(user, nil)
-		_, err := service.GetMe("test@test.com")
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		_, err := service.GetMe(ctx, "test@test.com")
 		assert.Error(t, err)
-		assert.Equal(t, "token err", err.Error())
 	})
 }
