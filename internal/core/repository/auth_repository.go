@@ -6,6 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type AuthRepositoryI interface {
+	FindByEmail(email string) (*models.User, error)
+}
+
 type AuthRepository struct {
 	BaseRepository[models.User]
 }

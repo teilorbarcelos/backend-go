@@ -16,12 +16,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type AuthService struct {
-	Repo *repository.AuthRepository
+type AuthServiceI interface {
+	Login(email, password string) (*LoginResponse, error)
+	GetMe(email string) (*LoginResponse, error)
 }
 
-func NewAuthService(repo *repository.AuthRepository) *AuthService {
-	return &AuthService{Repo: repo}
+type AuthService struct {
+	Repo          repository.AuthRepositoryI
+	GenerateToken func(id, email, idRole string, permissions []security.Permission) (string, error)
+}
+
+func NewAuthService(repo repository.AuthRepositoryI) *AuthService {
+	return &AuthService{
+		Repo:          repo,
+		GenerateToken: security.GenerateToken,
+	}
 }
 
 type UserResponse struct {
@@ -97,7 +106,7 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 		})
 	}
 
-	token, err := security.GenerateToken(user.ID, user.Email, user.IDRole, permissions)
+	token, err := s.GenerateToken(user.ID, user.Email, user.IDRole, permissions)
 	if err != nil {
 		return nil, err
 	}
