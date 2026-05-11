@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"log"
 	"os"
@@ -10,174 +11,34 @@ import (
 	"text/template"
 )
 
+//go:embed templates/*.tpl
+var templatesFS embed.FS
+
 type TemplateData struct {
 	Name      string
 	LowerName string
 }
 
-const repositoryTemplate = `package {{.LowerName}}
-
-import (
-	"backend-go/internal/core/models"
-	"backend-go/internal/core/repository"
-	"gorm.io/gorm"
-)
-
-type {{.Name}} struct {
-	models.BaseModel
-	Name string ` + "`gorm:\"type:varchar(255);not null\" json:\"name\"`" + `
-}
-
-type {{.Name}}Repository struct {
-	*repository.BaseRepository[{{.Name}}]
-}
-
-func New{{.Name}}Repository(db *gorm.DB) *{{.Name}}Repository {
-	return &{{.Name}}Repository{
-		BaseRepository: repository.NewBaseRepository[{{.Name}}](db),
-	}
-}
-`
-
-const serviceTemplate = `package {{.LowerName}}
-
-import (
-	"context"
-	"backend-go/pkg/database"
-)
-
-type {{.Name}}Service struct {
-	Repo *{{.Name}}Repository
-}
-
-func New{{.Name}}Service(repo *{{.Name}}Repository) *{{.Name}}Service {
-	return &{{.Name}}Service{Repo: repo}
-}
-
-func (s *{{.Name}}Service) Create(ctx context.Context, entity *{{.Name}}) error {
-	return s.Repo.WithContext(ctx).Create(entity)
-}
-
-func (s *{{.Name}}Service) List(ctx context.Context, params database.FilterParams) ([]{{.Name}}, int64, error) {
-	allowed := map[string]bool{
-		"name": true,
-	}
-	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
-}
-
-func (s *{{.Name}}Service) GetByID(ctx context.Context, id string) (*{{.Name}}, error) {
-	return s.Repo.WithContext(ctx).FindByID(id)
-}
-
-func (s *{{.Name}}Service) Update(ctx context.Context, id string, updates map[string]interface{}) error {
-	return s.Repo.WithContext(ctx).Update(id, updates)
-}
-
-func (s *{{.Name}}Service) Delete(ctx context.Context, id string) error {
-	return s.Repo.WithContext(ctx).Delete(id)
-}
-`
-
-const handlerTemplate = `package {{.LowerName}}
-
-import (
-	"net/http"
-	"github.com/gin-gonic/gin"
-	"backend-go/internal/core/handler"
-)
-
-type {{.Name}}Handler struct {
-	Service *{{.Name}}Service
-}
-
-func New{{.Name}}Handler(service *{{.Name}}Service) *{{.Name}}Handler {
-	return &{{.Name}}Handler{Service: service}
-}
-
-func (h *{{.Name}}Handler) Create(c *gin.Context) {
-	var entity {{.Name}}
-	if err := c.ShouldBindJSON(&entity); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := h.Service.Create(c.Request.Context(), &entity); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, entity)
-}
-
-func (h *{{.Name}}Handler) List(c *gin.Context) {
-	params := handler.ParseFilterParams(c)
-	
-	items, total, err := h.Service.List(c.Request.Context(), params)
+func writeTemplate(outputPath, templateName string, data TemplateData) {
+	tmplContent, err := templatesFS.ReadFile(filepath.Join("templates", templateName))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		log.Fatalf("Erro ao ler template %s: %v", templateName, err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"items": items,
-		"total": total,
-		"page":  params.Page,
-		"limit": params.Limit,
-	})
-}
-
-func (h *{{.Name}}Handler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	entity, err := h.Service.GetByID(c.Request.Context(), id)
+	t, err := template.New(templateName).Parse(string(tmplContent))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Não encontrado"})
-		return
+		log.Fatalf("Erro ao parsear template %s: %v", templateName, err)
 	}
 
-	c.JSON(http.StatusOK, entity)
-}
-
-func (h *{{.Name}}Handler) Update(c *gin.Context) {
-	id := c.Param("id")
-	var updates map[string]interface{}
-	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := h.Service.Update(c.Request.Context(), id, updates); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-
-func (h *{{.Name}}Handler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-`
-
-func writeTemplate(path, tmpl string, data TemplateData) {
-	t, err := template.New("tmpl").Parse(tmpl)
-	if err != nil {
-		log.Fatalf("Erro ao parsear template: %v", err)
-	}
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, data); err != nil {
-		log.Fatalf("Erro ao executar template: %v", err)
+		log.Fatalf("Erro ao executar template %s: %v", templateName, err)
 	}
 
-	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		log.Fatalf("Erro ao escrever arquivo %s: %v", path, err)
+	if err := os.WriteFile(outputPath, buf.Bytes(), 0644); err != nil {
+		log.Fatalf("Erro ao escrever arquivo %s: %v", outputPath, err)
 	}
-	fmt.Printf("Criado: %s\n", path)
+	fmt.Printf("Criado: %s\n", outputPath)
 }
 
 func main() {
@@ -198,9 +59,9 @@ func main() {
 		LowerName: lowerName,
 	}
 
-	writeTemplate(filepath.Join(dir, "repository.go"), repositoryTemplate, data)
-	writeTemplate(filepath.Join(dir, "service.go"), serviceTemplate, data)
-	writeTemplate(filepath.Join(dir, "handler.go"), handlerTemplate, data)
+	writeTemplate(filepath.Join(dir, "repository.go"), "repository.tpl", data)
+	writeTemplate(filepath.Join(dir, "service.go"), "service.tpl", data)
+	writeTemplate(filepath.Join(dir, "handler.go"), "handler.tpl", data)
 
 	fmt.Printf("\nMódulo '%s' gerado com sucesso em '%s'.\n", name, dir)
 }
