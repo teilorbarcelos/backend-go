@@ -26,8 +26,12 @@ func main() {
 	database.ConnectDB()
 	cache.ConnectRedis()
 	messaging.ConnectRabbitMQ()
-	defer messaging.RabbitConn.Close()
-	defer messaging.RabbitChannel.Close()
+	if messaging.RabbitConn != nil {
+		defer messaging.RabbitConn.Close()
+	}
+	if messaging.RabbitChannel != nil {
+		defer messaging.RabbitChannel.Close()
+	}
 	r := gin.Default()
 
 	r.Use(middleware.CORS())

@@ -1,8 +1,8 @@
-package repository
+package auth
 
 import (
 	"backend-go/internal/core/models"
-
+	"backend-go/internal/core/repository"
 	"gorm.io/gorm"
 )
 
@@ -11,12 +11,12 @@ type AuthRepositoryI interface {
 }
 
 type AuthRepository struct {
-	BaseRepository[models.User]
+	repository.BaseRepository[models.User]
 }
 
 func NewAuthRepository(db *gorm.DB) *AuthRepository {
 	return &AuthRepository{
-		BaseRepository: *NewBaseRepository[models.User](db),
+		BaseRepository: *repository.NewBaseRepository[models.User](db),
 	}
 }
 

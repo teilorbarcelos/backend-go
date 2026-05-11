@@ -2,18 +2,13 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
 	"backend-go/internal/core/models"
-	"backend-go/internal/core/repository"
-	"backend-go/pkg/cache"
+	"backend-go/internal/infra/session"
 	"backend-go/pkg/security"
-
-	"github.com/gin-gonic/gin"
 )
 
 type AuthServiceI interface {
@@ -22,14 +17,16 @@ type AuthServiceI interface {
 }
 
 type AuthService struct {
-	Repo          repository.AuthRepositoryI
-	GenerateToken func(id, email, idRole string, permissions []security.Permission) (string, error)
+	Repo           AuthRepositoryI
+	SessionManager *session.SessionManager
+	GenerateToken  func(id, email, idRole string, permissions []security.Permission) (string, error)
 }
 
-func NewAuthService(repo repository.AuthRepositoryI) *AuthService {
+func NewAuthService(repo AuthRepositoryI, sessionMgr *session.SessionManager) *AuthService {
 	return &AuthService{
-		Repo:          repo,
-		GenerateToken: security.GenerateToken,
+		Repo:           repo,
+		SessionManager: sessionMgr,
+		GenerateToken:  security.GenerateToken,
 	}
 }
 
@@ -113,7 +110,7 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 
 	refreshToken := token
 
-	payload := gin.H{
+	payload := map[string]interface{}{
 		"id":          user.ID,
 		"email":       user.Email,
 		"roleId":      user.IDRole,
@@ -123,16 +120,14 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 	tokenHash := security.SHA256(token)
 	refreshTokenHash := security.SHA256(refreshToken)
 
-	payloadJSON, _ := json.Marshal(payload)
-
 	expireTime := 24 * 60 * 60
 	refreshExpireTime := 7 * 24 * 60 * 60
 
 	ctx := context.Background()
-	if err := cache.RedisClient.Set(ctx, fmt.Sprintf("session:role:%s:user:%s:access:%s", user.IDRole, user.ID, tokenHash), payloadJSON, time.Duration(expireTime)*time.Second).Err(); err != nil {
+	if err := s.SessionManager.CreateSession(ctx, user.ID, user.IDRole, tokenHash, payload, time.Duration(expireTime)*time.Second); err != nil {
 		log.Printf("[AuthService] Erro ao salvar sessão no Redis: %v", err)
 	}
-	if err := cache.RedisClient.Set(ctx, fmt.Sprintf("session:role:%s:user:%s:refresh:%s", user.IDRole, user.ID, refreshTokenHash), "1", time.Duration(refreshExpireTime)*time.Second).Err(); err != nil {
+	if err := s.SessionManager.CreateRefreshToken(ctx, user.ID, user.IDRole, refreshTokenHash, time.Duration(refreshExpireTime)*time.Second); err != nil {
 		log.Printf("[AuthService] Erro ao salvar refresh token no Redis: %v", err)
 	}
 
@@ -151,7 +146,7 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 			IDRole:    user.IDRole,
 			CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt: user.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			Role: gin.H{
+			Role: map[string]interface{}{
 				"id":          user.Role.ID,
 				"name":        user.Role.Name,
 				"description": user.Role.Description,

@@ -8,9 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"backend-go/internal/core/models"
+	"backend-go/internal/infra/session"
 	"backend-go/pkg/cache"
-	"backend-go/pkg/config"
-	"backend-go/pkg/database"
 	"backend-go/pkg/security"
 	"github.com/redis/go-redis/v9"
 )
@@ -27,19 +26,10 @@ func (m *MockAuthRepository) FindByEmail(email string) (*models.User, error) {
 	return args.Get(0).(*models.User), args.Error(1)
 }
 
-func TestMain(m *testing.M) {
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	database.ConnectDB()
-	cache.ConnectRedis()
-
-	code := m.Run()
-	os.Exit(code)
-}
-
 func TestAuthService_Login(t *testing.T) {
 	mockRepo := new(MockAuthRepository)
-	service := NewAuthService(mockRepo)
+	sm := session.NewSessionManager()
+	service := NewAuthService(mockRepo, sm)
 
 	password := "password123"
 	hashedPassword, _ := security.HashPassword(password)
@@ -127,7 +117,8 @@ func TestAuthService_Login(t *testing.T) {
 
 func TestAuthService_GetMe(t *testing.T) {
 	mockRepo := new(MockAuthRepository)
-	service := NewAuthService(mockRepo)
+	sm := session.NewSessionManager()
+	service := NewAuthService(mockRepo, sm)
 
 	user := &models.User{
 		BaseModel: models.BaseModel{ID: "1"},

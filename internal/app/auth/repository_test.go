@@ -1,24 +1,12 @@
-package repository
+package auth
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
-	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 )
-
-func TestMain(m *testing.M) {
-	// Setup test environment
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	database.ConnectDB()
-
-	code := m.Run()
-	os.Exit(code)
-}
 
 func TestNewAuthRepository(t *testing.T) {
 	repo := NewAuthRepository(database.DB)

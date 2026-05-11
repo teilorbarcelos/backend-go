@@ -10,8 +10,36 @@ import (
 	"backend-go/pkg/config"
 )
 
-var RabbitConn *amqp.Connection
-var RabbitChannel *amqp.Channel
+type AMQPChannel interface {
+	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
+	Close() error
+}
+
+type AMQPConnection interface {
+	Channel() (AMQPChannel, error)
+	Close() error
+}
+
+type ConnectionWrapper struct {
+	*amqp.Connection
+}
+
+func (w *ConnectionWrapper) Channel() (AMQPChannel, error) {
+	return w.Connection.Channel()
+}
+
+var RabbitConn AMQPConnection
+var RabbitChannel AMQPChannel
+
+var amqpDial = func(url string) (AMQPConnection, error) {
+	conn, err := amqp.Dial(url)
+	if err != nil {
+		return nil, err
+	}
+	return &ConnectionWrapper{conn}, nil
+}
+var logFatalf = log.Fatalf
 
 func ConnectRabbitMQ() {
 	if config.AppConfig.Environment == "test" {
@@ -20,20 +48,25 @@ func ConnectRabbitMQ() {
 	}
 
 	var err error
-	RabbitConn, err = amqp.Dial(config.AppConfig.RabbitMQUrl)
+	RabbitConn, err = amqpDial(config.AppConfig.RabbitMQUrl)
 	if err != nil {
-		log.Fatalf("Falha ao conectar no RabbitMQ: %v", err)
+		logFatalf("Falha ao conectar no RabbitMQ: %v", err)
 	}
 
 	RabbitChannel, err = RabbitConn.Channel()
 	if err != nil {
-		log.Fatalf("Falha ao abrir canal no RabbitMQ: %v", err)
+		logFatalf("Falha ao abrir canal no RabbitMQ: %v", err)
 	}
 
 	log.Println("Conexão com RabbitMQ estabelecida com sucesso.")
 }
 
 func Publish(queueName string, body interface{}) error {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
 	if RabbitChannel == nil {
 		return nil // Ou retorne um erro se for mandatório
 	}
@@ -52,11 +85,6 @@ func Publish(queueName string, body interface{}) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	data, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
 
 	return RabbitChannel.PublishWithContext(ctx,
 		"",     // exchange

@@ -1,15 +1,15 @@
 package auth
 
 import (
-	"backend-go/internal/core/repository"
-
+	"backend-go/internal/infra/session"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func RegisterRoutes(publicRG *gin.RouterGroup, protectedRG *gin.RouterGroup, db *gorm.DB) {
-	repo := repository.NewAuthRepository(db)
-	svc := NewAuthService(repo)
+	repo := NewAuthRepository(db)
+	sm := session.NewSessionManager()
+	svc := NewAuthService(repo, sm)
 	h := NewAuthHandler(svc)
 
 	authGroup := publicRG.Group("/auth")
