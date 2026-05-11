@@ -6,6 +6,15 @@ import (
 	"context"
 )
 
+type ProductServiceI interface {
+	Create(ctx context.Context, dto CreateProductDTO) (*models.Product, error)
+	Update(ctx context.Context, id string, updates map[string]interface{}) (*models.Product, error)
+	List(ctx context.Context, params database.FilterParams) ([]models.Product, int64, error)
+	GetByID(ctx context.Context, id string) (*models.Product, error)
+	Delete(ctx context.Context, id string) error
+	SetStatus(ctx context.Context, id string, active bool) error
+}
+
 type ProductService struct {
 	Repo *ProductRepository
 }

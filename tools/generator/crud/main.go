@@ -61,6 +61,9 @@ func main() {
 	writeTemplate(filepath.Join(dir, "repository.go"), "repository.tpl", data)
 	writeTemplate(filepath.Join(dir, "service.go"), "service.tpl", data)
 	writeTemplate(filepath.Join(dir, "handler.go"), "handler.tpl", data)
+	writeTemplate(filepath.Join(dir, "repository_test.go"), "repository_test.tpl", data)
+	writeTemplate(filepath.Join(dir, "service_test.go"), "service_test.tpl", data)
+	writeTemplate(filepath.Join(dir, "handler_test.go"), "handler_test.tpl", data)
 
 	fmt.Printf("\nMódulo '%s' gerado com sucesso em '%s'.\n", name, dir)
 }

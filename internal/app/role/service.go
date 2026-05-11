@@ -7,12 +7,22 @@ import (
 	"backend-go/pkg/database"
 )
 
+type RoleServiceI interface {
+	ListFeatures(ctx context.Context) ([]models.Feature, error)
+	Create(ctx context.Context, dto CreateRoleDTO) (*models.Role, error)
+	Update(ctx context.Context, id string, dto CreateRoleDTO) (*models.Role, error)
+	List(ctx context.Context, params database.FilterParams) ([]models.Role, int64, error)
+	GetByID(ctx context.Context, id string) (*models.Role, error)
+	Delete(ctx context.Context, id string) error
+	SetStatus(ctx context.Context, id string, active bool) error
+}
+
 type RoleService struct {
-	Repo           *RoleRepository
+	Repo           RoleRepositoryI
 	SessionManager *session.SessionManager
 }
 
-func NewRoleService(repo *RoleRepository, sessionMgr *session.SessionManager) *RoleService {
+func NewRoleService(repo RoleRepositoryI, sessionMgr *session.SessionManager) *RoleService {
 	return &RoleService{
 		Repo:           repo,
 		SessionManager: sessionMgr,
@@ -20,9 +30,7 @@ func NewRoleService(repo *RoleRepository, sessionMgr *session.SessionManager) *R
 }
 
 func (s *RoleService) ListFeatures(ctx context.Context) ([]models.Feature, error) {
-	var features []models.Feature
-	err := s.Repo.WithContext(ctx).DB.Where("active = ?", true).Find(&features).Error
-	return features, err
+	return s.Repo.WithContext(ctx).ListFeatures(ctx)
 }
 
 type CreateRoleDTO struct {
