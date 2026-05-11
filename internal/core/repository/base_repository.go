@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"backend-go/pkg/database"
+
 	"gorm.io/gorm"
 )
 
-// IRepository define os métodos padrões para todos os repositórios.
 type IRepository[T any] interface {
 	Create(entity *T) error
 	FindAll(filter map[string]interface{}, offset, limit int, preloads ...string) ([]T, int64, error)
@@ -44,7 +44,6 @@ func (r *BaseRepository[T]) FindAll(filter map[string]interface{}, offset, limit
 		query = query.Preload(p)
 	}
 
-	// Filtros dinâmicos básicos
 	for k, v := range filter {
 		query = query.Where(k+" = ?", v)
 	}
@@ -79,12 +78,10 @@ func (r *BaseRepository[T]) FindByID(id string, preloads ...string) (*T, error) 
 }
 
 func (r *BaseRepository[T]) Update(id string, updates map[string]interface{}) error {
-	// GORM já ignora atualização de campos com struct vazia, map é mais seguro para patches dinâmicos.
 	return r.DB.Model(new(T)).Where("id = ?", id).Updates(updates).Error
 }
 
 func (r *BaseRepository[T]) Delete(id string) error {
-	// Atualiza o is_deleted customizado junto com o Delete nativo do GORM
 	return r.DB.Model(new(T)).Where("id = ?", id).Updates(map[string]interface{}{
 		"is_deleted": true,
 	}).Delete(new(T)).Error
@@ -98,34 +95,26 @@ func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, filter
 	var entities []T
 	var total int64
 
-	// Criamos a base da query
 	query := r.DB.Model(new(T))
 
-	// Aplicamos os preloads
 	for _, p := range preloads {
 		query = query.Preload(p)
 	}
 
-	// Aplicamos os filtros dinâmicos (exceto paginação para o count)
 	query, err := database.ApplyFilters(query, params, filterable, searchable)
 	if err != nil {
 		return nil, 0, err
 	}
-	
-	// Filtro base de segurança
 	if params.Filters["ignoreDefaultFilters"] != true {
 		query = query.Where("is_deleted = ?", false)
 	}
 
-	// Contamos o total sem o offset/limit
-	// Nota: Precisamos remover o offset/limit da query para o Count funcionar corretamente
 	countQuery := query.Session(&gorm.Session{}).Offset(-1).Limit(-1)
 	err = countQuery.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Executamos a busca final
 	err = query.Find(&entities).Error
 	return entities, total, err
 }

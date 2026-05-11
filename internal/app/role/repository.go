@@ -1,9 +1,10 @@
 package role
 
 import (
-	"context"
 	"backend-go/internal/core/models"
 	"backend-go/internal/core/repository"
+	"context"
+
 	"gorm.io/gorm"
 )
 
@@ -22,7 +23,6 @@ func NewRoleRepository(db *gorm.DB) *RoleRepository {
 		BaseRepository: *repository.NewBaseRepository[models.Role](db),
 	}
 }
-
 
 func (r *RoleRepository) CreateWithPermissions(role *models.Role, permissions []models.RoleFeature) error {
 	return r.DB.Transaction(func(tx *gorm.DB) error {
@@ -48,7 +48,6 @@ func (r *RoleRepository) UpdateWithPermissions(id string, role *models.Role, per
 		}
 
 		if permissions != nil {
-			// Delete existing permissions and recreate (like in Node backend)
 			if err := tx.Where("id_role = ?", id).Delete(&models.RoleFeature{}).Error; err != nil {
 				return err
 			}

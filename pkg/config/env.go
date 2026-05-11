@@ -7,12 +7,12 @@ import (
 )
 
 type Config struct {
-	Environment     string `mapstructure:"ENVIRONMENT"`
-	Port            string `mapstructure:"PORT"`
-	Host            string `mapstructure:"HOST"`
-	DBUrl           string `mapstructure:"DATABASE_URL"`
-	RedisUrl        string `mapstructure:"REDIS_URL"`
-	RabbitMQUrl     string `mapstructure:"RABBITMQ_URL"`
+	Environment       string `mapstructure:"ENVIRONMENT"`
+	Port              string `mapstructure:"PORT"`
+	Host              string `mapstructure:"HOST"`
+	DBUrl             string `mapstructure:"DATABASE_URL"`
+	RedisUrl          string `mapstructure:"REDIS_URL"`
+	RabbitMQUrl       string `mapstructure:"RABBITMQ_URL"`
 	JWTSecret         string `mapstructure:"JWT_SECRET"`
 	RateLimitMax      int    `mapstructure:"RATE_LIMIT_MAX"`
 	RateLimitWindow   string `mapstructure:"RATE_LIMIT_WINDOW"`
@@ -31,7 +31,6 @@ func LoadConfig() {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
-	// Default values
 	viper.SetDefault("ENVIRONMENT", "development")
 	viper.SetDefault("PORT", "3000")
 	viper.SetDefault("HOST", "0.0.0.0")

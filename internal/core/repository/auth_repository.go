@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backend-go/internal/core/models"
+
 	"gorm.io/gorm"
 )
 
@@ -15,7 +16,6 @@ func NewAuthRepository(db *gorm.DB) *AuthRepository {
 	}
 }
 
-// FindByEmail busca um usuário pelo email incluindo a entidade Auth para validação de senha.
 func (r *AuthRepository) FindByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := r.DB.Preload("Auth").Preload("Role").Preload("Role.RoleFeature").Where("email = ?", email).First(&user).Error

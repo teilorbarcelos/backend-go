@@ -11,7 +11,6 @@ import (
 	"text/template"
 )
 
-//go:embed templates/*.tpl
 var templatesFS embed.FS
 
 func main() {
@@ -33,7 +32,7 @@ func main() {
 	}
 
 	filePath := filepath.Join(dir, name+".go")
-	
+
 	t, err := template.New(templateFile).Parse(string(tmplContent))
 	if err != nil {
 		log.Fatalf("Erro ao parsear template %s: %v", templateFile, err)

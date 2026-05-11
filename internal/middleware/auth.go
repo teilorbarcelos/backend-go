@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/security"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Authenticate é um middleware que valida o token JWT no header Authorization.
 func Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -36,10 +36,9 @@ func Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Validar sessão no Redis (conforme backend-node)
 		tokenHash := security.SHA256(tokenString)
 		sessionKey := fmt.Sprintf("session:role:%s:user:%s:access:%s", claims.RoleID, claims.UserID, tokenHash)
-		
+
 		exists, err := cache.RedisClient.Exists(c.Request.Context(), sessionKey).Result()
 		if err != nil || exists == 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Sessão inválida ou expirada"})
@@ -47,7 +46,6 @@ func Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Injeta os dados do usuário no contexto para uso posterior nos handlers e audit hooks
 		ctx := context.WithValue(c.Request.Context(), "userID", claims.UserID)
 		c.Request = c.Request.WithContext(ctx)
 

@@ -8,11 +8,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"backend-go/internal/core/models"
 	"backend-go/internal/core/repository"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/security"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuthService struct {
@@ -22,7 +23,6 @@ type AuthService struct {
 func NewAuthService(repo *repository.AuthRepository) *AuthService {
 	return &AuthService{Repo: repo}
 }
-
 
 type UserResponse struct {
 	ID        string      `json:"id"`
@@ -102,10 +102,8 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 		return nil, err
 	}
 
-	// TODO: Implement real Refresh Token generation
 	refreshToken := token
 
-	// Criar payload para salvar no Redis (mesma estrutura do Node)
 	payload := gin.H{
 		"id":          user.ID,
 		"email":       user.Email,
@@ -116,10 +114,8 @@ func (s *AuthService) prepareAuthResponse(user *models.User) (*LoginResponse, er
 	tokenHash := security.SHA256(token)
 	refreshTokenHash := security.SHA256(refreshToken)
 
-	// Marshall payload to JSON string (like Node does)
 	payloadJSON, _ := json.Marshal(payload)
 
-	// TTL: 24h para access, 7d para refresh
 	expireTime := 24 * 60 * 60
 	refreshExpireTime := 7 * 24 * 60 * 60
 

@@ -16,8 +16,6 @@ func NewSessionManager() *SessionManager {
 
 func (s *SessionManager) InvalidateUserSessions(userId string, roleId string) error {
 	ctx := context.Background()
-	// Sempre usamos wildcard para o papel ao invalidar um usuário específico,
-	// para garantir que todas as suas sessões sejam derrubadas independentemente da role.
 	pattern := fmt.Sprintf("session:role:*:user:%s:*", userId)
 
 	log.Printf("[SessionManager] Invalidating sessions for user %s with pattern %s", userId, pattern)

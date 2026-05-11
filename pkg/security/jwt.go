@@ -3,8 +3,9 @@ package security
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"backend-go/pkg/config"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Permission struct {
@@ -25,7 +26,6 @@ type JWTClaims struct {
 
 var jwtParseWithClaims = jwt.ParseWithClaims
 
-// GenerateToken cria um novo token JWT para um usuário com suas permissões.
 func GenerateToken(userID, email, roleID string, permissions []Permission) (string, error) {
 	claims := &JWTClaims{
 		UserID:      userID,
@@ -42,7 +42,6 @@ func GenerateToken(userID, email, roleID string, permissions []Permission) (stri
 	return token.SignedString([]byte(config.AppConfig.JWTSecret))
 }
 
-// ValidateToken valida um token JWT e retorna as claims.
 func ValidateToken(tokenString string) (*JWTClaims, error) {
 	token, err := jwtParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.AppConfig.JWTSecret), nil

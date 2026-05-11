@@ -3,17 +3,13 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"backend-go/pkg/security"
+
+	"github.com/gin-gonic/gin"
 )
 
-// CheckPermission verifica se o usuário autenticado tem permissão para a feature e ação solicitada.
 func CheckPermission(feature string, action string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// O middleware Authenticate já deve ter injetado as claims no contexto (via token ou redis)
-		// Mas aqui vamos ler diretamente das claims que o Authenticate validou.
-		
-		// Bypass para administrador
 		roleID, roleExists := c.Get("userRoleID")
 		if roleExists && roleID.(string) == "administrator" {
 			c.Next()
@@ -28,7 +24,7 @@ func CheckPermission(feature string, action string) gin.HandlerFunc {
 		}
 
 		userPerms := permissions.([]security.Permission)
-		
+
 		var hasPerm bool
 		for _, p := range userPerms {
 			if p.Feature == feature {

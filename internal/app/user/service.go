@@ -80,12 +80,10 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 
 	updates := make(map[string]interface{})
 
-	// Proteção: Não permite desativar o primeiro usuário
 	if user.Email == config.AppConfig.FirstUserEmail {
 		if dto.Active != nil && !*dto.Active {
 			return nil, errors.New("o usuário administrador inicial não pode ser desativado")
 		}
-		// Não permite alterar o email do primeiro usuário para não perder a referência
 		if dto.Email != "" && dto.Email != user.Email {
 			return nil, errors.New("o email do usuário administrador inicial não pode ser alterado")
 		}
@@ -120,14 +118,12 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 		}
 	}
 
-	// Invalida sessões se houver qualquer alteração
 	s.SessionManager.InvalidateUserSessions(id, user.IDRole)
 
 	return repo.FindByID(id, "Auth", "Role")
 }
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
-	// Definimos os campos permitidos para filtro/busca no User seguindo o padrão Node.js
 	filterable := map[string]database.FilterConfig{
 		"name":      {Operator: "contains"},
 		"email":     {Operator: "equals"},

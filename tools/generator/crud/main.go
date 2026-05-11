@@ -11,7 +11,6 @@ import (
 	"text/template"
 )
 
-//go:embed templates/*.tpl
 var templatesFS embed.FS
 
 type TemplateData struct {
@@ -48,7 +47,7 @@ func main() {
 
 	name := os.Args[1]
 	lowerName := strings.ToLower(name)
-	
+
 	dir := filepath.Join("internal", "app", lowerName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		log.Fatalf("Erro ao criar diretório %s: %v", dir, err)
