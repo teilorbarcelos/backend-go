@@ -116,6 +116,18 @@ func TestAuthService_Login(t *testing.T) {
 		_, err := service.Login(ctx, "test@test.com", password)
 		assert.Error(t, err)
 	})
+
+	t.Run("Refresh Token Error", func(t *testing.T) {
+		oldGen := service.GenerateRefreshToken
+		service.GenerateRefreshToken = func(id, email, idRole string) (string, error) {
+			return "", errors.New("refresh token err")
+		}
+		defer func() { service.GenerateRefreshToken = oldGen }()
+
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		_, err := service.Login(ctx, "test@test.com", password)
+		assert.Error(t, err)
+	})
 }
 
 func TestAuthService_GetMe(t *testing.T) {
@@ -164,6 +176,52 @@ func TestAuthService_GetMe(t *testing.T) {
 
 		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
 		_, err := service.GetMe(ctx, "test@test.com")
+		assert.Error(t, err)
+	})
+}
+
+func TestAuthService_RefreshToken(t *testing.T) {
+	mockRepo := new(MockAuthRepository)
+	sm := session.NewSessionManager()
+	serviceInterface := NewService(mockRepo, sm)
+	service := serviceInterface.(*authService)
+	ctx := context.Background()
+
+	user := &models.User{
+		BaseModel: models.BaseModel{ID: "1"},
+		Email:     "test@test.com",
+		Active:    true,
+		Role: models.Role{
+			BaseModel: models.BaseModel{ID: "admin"},
+		},
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		token, _ := security.GenerateRefreshToken("1", "test@test.com", "admin")
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		res, err := service.RefreshToken(ctx, token)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+	})
+
+	t.Run("Invalid Token", func(t *testing.T) {
+		_, err := service.RefreshToken(ctx, "invalid")
+		assert.Error(t, err)
+	})
+
+	t.Run("User Not Found", func(t *testing.T) {
+		token, _ := security.GenerateRefreshToken("1", "notfound@test.com", "admin")
+		mockRepo.On("FindByEmail", mock.Anything, "notfound@test.com").Return(nil, os.ErrNotExist).Once()
+		_, err := service.RefreshToken(ctx, token)
+		assert.Error(t, err)
+	})
+
+	t.Run("Inactive User", func(t *testing.T) {
+		inactive := *user
+		inactive.Active = false
+		token, _ := security.GenerateRefreshToken("1", "test@test.com", "admin")
+		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(&inactive, nil).Once()
+		_, err := service.RefreshToken(ctx, token)
 		assert.Error(t, err)
 	})
 }

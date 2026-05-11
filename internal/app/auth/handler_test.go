@@ -35,6 +35,14 @@ func (m *MockAuthService) GetMe(ctx context.Context, email string) (*LoginRespon
 	return args.Get(0).(*LoginResponse), args.Error(1)
 }
 
+func (m *MockAuthService) RefreshToken(ctx context.Context, refreshToken string) (*LoginResponse, error) {
+	args := m.Called(ctx, refreshToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*LoginResponse), args.Error(1)
+}
+
 func TestAuthHandler_Login(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -165,6 +173,56 @@ func TestAuthHandler_Me(t *testing.T) {
 		mockSvc.On("GetMe", mock.Anything, "test@test.com").Return(nil, domainerr.ErrUserNotFound)
 
 		req, _ := http.NewRequest("GET", "/me", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+func TestAuthHandler_Refresh(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("Success", func(t *testing.T) {
+		mockSvc := new(MockAuthService)
+		h := NewHandler(mockSvc)
+		r := gin.Default()
+		r.POST("/refresh", h.Refresh)
+
+		res := &LoginResponse{Valid: true, Token: "new-token"}
+		mockSvc.On("RefreshToken", mock.Anything, "old-refresh").Return(res, nil)
+
+		body, _ := json.Marshal(RefreshRequest{RefreshToken: "old-refresh"})
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Invalid JSON", func(t *testing.T) {
+		mockSvc := new(MockAuthService)
+		h := NewHandler(mockSvc)
+		r := gin.Default()
+		r.POST("/refresh", h.Refresh)
+
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBufferString("invalid"))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Service Error", func(t *testing.T) {
+		mockSvc := new(MockAuthService)
+		h := NewHandler(mockSvc)
+		r := gin.Default()
+		r.POST("/refresh", h.Refresh)
+
+		mockSvc.On("RefreshToken", mock.Anything, "old-refresh").Return(nil, domainerr.ErrInvalidCredentials)
+
+		body, _ := json.Marshal(RefreshRequest{RefreshToken: "old-refresh"})
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 

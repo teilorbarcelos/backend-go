@@ -15,6 +15,7 @@ func RegisterRoutes(publicRG *gin.RouterGroup, protectedRG *gin.RouterGroup, db 
 	authGroup := publicRG.Group("/auth")
 	{
 		authGroup.POST("/login", h.Login)
+		authGroup.POST("/refresh", h.Refresh)
 	}
 	protectedRG.GET("/auth/me", h.Me)
 }

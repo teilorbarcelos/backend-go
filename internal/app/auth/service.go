@@ -14,19 +14,22 @@ import (
 type Service interface {
 	Login(ctx context.Context, email, password string) (*LoginResponse, error)
 	GetMe(ctx context.Context, email string) (*LoginResponse, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*LoginResponse, error)
 }
 
 type authService struct {
-	repo           Repository
-	sessionManager session.SessionStore
-	GenerateToken  func(id, email, idRole string, permissions []security.Permission) (string, error)
+	repo               Repository
+	sessionManager     session.SessionStore
+	GenerateToken      func(id, email, idRole string, permissions []security.Permission) (string, error)
+	GenerateRefreshToken func(id, email, idRole string) (string, error)
 }
 
 func NewService(repo Repository, sessionMgr session.SessionStore) Service {
 	return &authService{
-		repo:           repo,
-		sessionManager: sessionMgr,
-		GenerateToken:  security.GenerateToken,
+		repo:                 repo,
+		sessionManager:       sessionMgr,
+		GenerateToken:        security.GenerateToken,
+		GenerateRefreshToken: security.GenerateRefreshToken,
 	}
 }
 
@@ -91,10 +94,33 @@ func (s *authService) GetMe(ctx context.Context, email string) (*LoginResponse, 
 	return res, nil
 }
 
+func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*LoginResponse, error) {
+	claims, err := security.ValidateToken(refreshToken)
+	if err != nil {
+		return nil, domainerr.ErrInvalidCredentials
+	}
+
+	user, err := s.repo.FindByEmail(ctx, claims.Email)
+	if err != nil {
+		return nil, domainerr.ErrUserNotFound
+	}
+
+	if !user.Active || user.IsDeleted {
+		return nil, domainerr.ErrAccountDisabled
+	}
+
+	return s.prepareAuthResponse(ctx, user)
+}
+
 func (s *authService) prepareAuthResponse(ctx context.Context, user *models.User) (*LoginResponse, error) {
 	permissions := s.mapPermissions(user)
 
 	token, err := s.GenerateToken(user.ID, user.Email, user.IDRole, permissions)
+	if err != nil {
+		return nil, domainerr.ErrInternal
+	}
+
+	refreshToken, err := s.GenerateRefreshToken(user.ID, user.Email, user.IDRole)
 	if err != nil {
 		return nil, domainerr.ErrInternal
 	}
@@ -106,7 +132,7 @@ func (s *authService) prepareAuthResponse(ctx context.Context, user *models.User
 	return &LoginResponse{
 		Valid:        true,
 		Token:        token,
-		RefreshToken: token, // TODO: Implement proper Refresh Token logic
+		RefreshToken: refreshToken,
 		User:         s.mapToUserResponse(user, permissions),
 	}, nil
 }

@@ -27,13 +27,21 @@ type JWTClaims struct {
 var jwtParseWithClaims = jwt.ParseWithClaims
 
 func GenerateToken(userID, email, roleID string, permissions []Permission) (string, error) {
+	return GenerateTokenWithExpiration(userID, email, roleID, permissions, 24*time.Hour)
+}
+
+func GenerateRefreshToken(userID, email, roleID string) (string, error) {
+	return GenerateTokenWithExpiration(userID, email, roleID, nil, 7*24*time.Hour)
+}
+
+func GenerateTokenWithExpiration(userID, email, roleID string, permissions []Permission, duration time.Duration) (string, error) {
 	claims := &JWTClaims{
 		UserID:      userID,
 		Email:       email,
 		RoleID:      roleID,
 		Permissions: permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

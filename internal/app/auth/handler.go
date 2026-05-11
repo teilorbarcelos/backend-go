@@ -21,6 +21,10 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type RefreshRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -45,6 +49,22 @@ func (h *Handler) Me(c *gin.Context) {
 	}
 
 	res, err := h.service.GetMe(c.Request.Context(), email.(string))
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) Refresh(c *gin.Context) {
+	var req RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		return
+	}
+
+	res, err := h.service.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		h.handleError(c, err)
 		return

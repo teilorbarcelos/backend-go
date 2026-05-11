@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"backend-go/internal/app/auth"
 	"backend-go/internal/app/product"
@@ -26,12 +32,7 @@ func main() {
 	database.ConnectDB()
 	cache.ConnectRedis()
 	messaging.ConnectRabbitMQ()
-	if messaging.RabbitConn != nil {
-		defer messaging.RabbitConn.Close()
-	}
-	if messaging.RabbitChannel != nil {
-		defer messaging.RabbitChannel.Close()
-	}
+
 	r := gin.Default()
 
 	r.Use(middleware.CORS())
@@ -57,9 +58,34 @@ func main() {
 	}
 
 	addr := config.AppConfig.Host + ":" + config.AppConfig.Port
-	log.Printf("Iniciando servidor em http://%s", addr)
-
-	if err := r.Run(addr); err != nil {
-		log.Fatalf("Erro ao iniciar servidor: %v", err)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
+
+	go func() {
+		log.Printf("Iniciando servidor em http://%s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Erro ao iniciar servidor: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Encerrando servidor...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Forçar encerramento do servidor: %v", err)
+	}
+
+	log.Println("Limpando recursos...")
+	if messaging.RabbitConn != nil {
+		messaging.RabbitConn.Close()
+	}
+
+	log.Println("Servidor finalizado com sucesso.")
 }
