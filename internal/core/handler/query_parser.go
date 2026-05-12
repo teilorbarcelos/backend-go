@@ -9,8 +9,12 @@ import (
 )
 
 func ParseFilterParams(c *gin.Context) database.FilterParams {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	sizeStr := c.Query("size")
+	if sizeStr == "" {
+		sizeStr = c.DefaultQuery("limit", "25")
+	}
+	limit, _ := strconv.Atoi(sizeStr)
 
 	params := database.FilterParams{
 		Pagination: database.Pagination{
