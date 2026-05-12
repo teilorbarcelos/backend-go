@@ -118,7 +118,7 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 		}
 	}
 
-	s.SessionManager.InvalidateUserSessions(id, user.IDRole)
+	s.SessionManager.InvalidateUserSessions(id, "")
 
 	return repo.FindByID(id, "Auth", "Role")
 }
@@ -137,7 +137,7 @@ func (s *UserService) List(ctx context.Context, params database.FilterParams) ([
 		{Key: "Role.name", Relation: "nested"},
 	}
 
-	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable, "Role")
+	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable)
 }
 
 func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {
@@ -155,7 +155,7 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateUserSessions(id, user.IDRole)
+	return s.SessionManager.InvalidateUserSessions(id, "")
 }
 
 func (s *UserService) SetStatus(ctx context.Context, id string, active bool) error {
@@ -169,5 +169,5 @@ func (s *UserService) SetStatus(ctx context.Context, id string, active bool) err
 	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateUserSessions(id, user.IDRole)
+	return s.SessionManager.InvalidateUserSessions(id, "")
 }

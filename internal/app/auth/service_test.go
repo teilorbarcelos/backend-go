@@ -5,7 +5,9 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
+	"backend-go/internal/core/domainerr"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/cache"
@@ -44,7 +46,7 @@ func TestAuthService_Login(t *testing.T) {
 		Auth: &models.Auth{
 			Password: &hashedPassword,
 		},
-		Role: models.Role{
+		Role: &models.Role{
 			BaseModel: models.BaseModel{ID: "admin"},
 			Name:      "Admin",
 			RoleFeature: []models.RoleFeature{
@@ -140,7 +142,7 @@ func TestAuthService_GetMe(t *testing.T) {
 		BaseModel: models.BaseModel{ID: "1"},
 		Email:     "test@test.com",
 		Active:    true,
-		Role: models.Role{
+		Role: &models.Role{
 			BaseModel: models.BaseModel{ID: "admin"},
 		},
 	}
@@ -187,18 +189,20 @@ func TestAuthService_RefreshToken(t *testing.T) {
 	service := serviceInterface.(*authService)
 	ctx := context.Background()
 
-	user := &models.User{
-		BaseModel: models.BaseModel{ID: "1"},
-		Email:     "test@test.com",
-		Active:    true,
-		Role: models.Role{
-			BaseModel: models.BaseModel{ID: "admin"},
-		},
-	}
-
 	t.Run("Success", func(t *testing.T) {
-		token, _ := security.GenerateRefreshToken("1", "test@test.com", "admin")
-		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(user, nil).Once()
+		user := &models.User{
+			BaseModel: models.BaseModel{ID: "success-user"},
+			Email:     "success@test.com",
+			Active:    true,
+			Role: &models.Role{
+				BaseModel: models.BaseModel{ID: "admin"},
+			},
+		}
+		token, _ := security.GenerateRefreshToken(user.ID, user.Email, "admin")
+		tokenHash := security.SHA256(token)
+		sm.CreateRefreshToken(ctx, user.ID, "admin", tokenHash, time.Hour)
+		
+		mockRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil).Once()
 		res, err := service.RefreshToken(ctx, token)
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
@@ -209,19 +213,50 @@ func TestAuthService_RefreshToken(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Session Expired", func(t *testing.T) {
+		token, _ := security.GenerateRefreshToken("expired-user", "expired@test.com", "admin")
+		_, err := service.RefreshToken(ctx, token)
+		assert.Error(t, err)
+		assert.Equal(t, domainerr.ErrInvalidCredentials, err)
+	})
+
 	t.Run("User Not Found", func(t *testing.T) {
-		token, _ := security.GenerateRefreshToken("1", "notfound@test.com", "admin")
+		token, _ := security.GenerateRefreshToken("notfound-user", "notfound@test.com", "admin")
+		tokenHash := security.SHA256(token)
+		sm.CreateRefreshToken(ctx, "notfound-user", "admin", tokenHash, time.Hour)
+
 		mockRepo.On("FindByEmail", mock.Anything, "notfound@test.com").Return(nil, os.ErrNotExist).Once()
 		_, err := service.RefreshToken(ctx, token)
 		assert.Error(t, err)
 	})
 
 	t.Run("Inactive User", func(t *testing.T) {
-		inactive := *user
-		inactive.Active = false
-		token, _ := security.GenerateRefreshToken("1", "test@test.com", "admin")
-		mockRepo.On("FindByEmail", mock.Anything, "test@test.com").Return(&inactive, nil).Once()
+		user := &models.User{
+			BaseModel: models.BaseModel{ID: "inactive-user"},
+			Email:     "inactive-refresh@test.com",
+			Active:    false,
+			Role: &models.Role{
+				BaseModel: models.BaseModel{ID: "admin"},
+			},
+		}
+		token, _ := security.GenerateRefreshToken(user.ID, user.Email, "admin")
+		tokenHash := security.SHA256(token)
+		sm.CreateRefreshToken(ctx, user.ID, "admin", tokenHash, time.Hour)
+
+		mockRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil).Once()
 		_, err := service.RefreshToken(ctx, token)
 		assert.Error(t, err)
+	})
+
+	t.Run("Redis Error", func(t *testing.T) {
+		token, _ := security.GenerateRefreshToken("redis-error-user", "redis@test.com", "admin")
+		
+		oldClient := cache.RedisClient
+		cache.RedisClient = redis.NewClient(&redis.Options{Addr: "localhost:1"})
+		defer func() { cache.RedisClient = oldClient }()
+
+		_, err := service.RefreshToken(ctx, token)
+		assert.Error(t, err)
+		assert.Equal(t, domainerr.ErrInvalidCredentials, err)
 	})
 }

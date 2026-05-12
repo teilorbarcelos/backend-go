@@ -65,6 +65,7 @@ func (s *SessionManager) deleteByPattern(ctx context.Context, pattern string) er
 		}
 
 		if len(keys) > 0 {
+			log.Printf("[SessionManager] Found keys to delete: %v", keys)
 			if err := cache.RedisClient.Del(ctx, keys...).Err(); err != nil {
 				return err
 			}

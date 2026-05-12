@@ -2,12 +2,14 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	"backend-go/internal/core/domainerr"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
+	"backend-go/pkg/cache"
 	"backend-go/pkg/security"
 )
 
@@ -100,6 +102,14 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*L
 		return nil, domainerr.ErrInvalidCredentials
 	}
 
+	// Verificar se a sessão de refresh ainda existe no Redis
+	tokenHash := security.SHA256(refreshToken)
+	sessionKey := fmt.Sprintf("session:role:%s:user:%s:refresh:%s", claims.RoleID, claims.UserID, tokenHash)
+	exists, err := cache.RedisClient.Exists(ctx, sessionKey).Result()
+	if err != nil || exists == 0 {
+		return nil, domainerr.ErrInvalidCredentials
+	}
+
 	user, err := s.repo.FindByEmail(ctx, claims.Email)
 	if err != nil {
 		return nil, domainerr.ErrUserNotFound
@@ -125,7 +135,7 @@ func (s *authService) prepareAuthResponse(ctx context.Context, user *models.User
 		return nil, domainerr.ErrInternal
 	}
 
-	if err := s.createSession(ctx, user, token, permissions); err != nil {
+	if err := s.createSession(ctx, user, token, refreshToken, permissions); err != nil {
 		log.Printf("[AuthService] Erro ao salvar sessão: %v", err)
 	}
 
@@ -151,7 +161,7 @@ func (s *authService) mapPermissions(user *models.User) []security.Permission {
 	return permissions
 }
 
-func (s *authService) createSession(ctx context.Context, user *models.User, token string, permissions []security.Permission) error {
+func (s *authService) createSession(ctx context.Context, user *models.User, token string, refreshToken string, permissions []security.Permission) error {
 	payload := map[string]interface{}{
 		"id":          user.ID,
 		"email":       user.Email,
@@ -160,13 +170,14 @@ func (s *authService) createSession(ctx context.Context, user *models.User, toke
 	}
 
 	tokenHash := security.SHA256(token)
+	refreshHash := security.SHA256(refreshToken)
 	expireTime := 24 * time.Hour
 	refreshExpireTime := 7 * 24 * time.Hour
 
 	if err := s.sessionManager.CreateSession(ctx, user.ID, user.IDRole, tokenHash, payload, expireTime); err != nil {
 		return err
 	}
-	return s.sessionManager.CreateRefreshToken(ctx, user.ID, user.IDRole, tokenHash, refreshExpireTime)
+	return s.sessionManager.CreateRefreshToken(ctx, user.ID, user.IDRole, refreshHash, refreshExpireTime)
 }
 
 func (s *authService) mapToUserResponse(user *models.User, permissions []security.Permission) UserResponse {
