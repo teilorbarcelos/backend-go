@@ -16,6 +16,9 @@ func RegisterRoutes(publicRG *gin.RouterGroup, protectedRG *gin.RouterGroup, db 
 	{
 		authGroup.POST("/login", h.Login)
 		authGroup.POST("/refresh", h.Refresh)
+		authGroup.POST("/password/request", h.ForgotPassword)
+		authGroup.POST("/password/validate", h.ValidateToken)
+		authGroup.POST("/password/change", h.ResetPassword)
 	}
 	protectedRG.GET("/auth/me", h.Me)
 }

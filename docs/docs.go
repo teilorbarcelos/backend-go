@@ -110,6 +110,135 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/password/change": {
+            "post": {
+                "description": "Altera a senha do usuário utilizando o código de validação.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Redefinir senha",
+                "parameters": [
+                    {
+                        "description": "Novos dados de senha",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: senha alterada com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/request": {
+            "post": {
+                "description": "Envia um e-mail com um código de 6 dígitos para o usuário.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Solicitar recuperação de senha",
+                "parameters": [
+                    {
+                        "description": "Email do usuário",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: e-mail de recuperação enviado se o usuário existir",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/validate": {
+            "post": {
+                "description": "Verifica se o código de 6 dígitos é válido e não expirou.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Validar código de recuperação",
+                "parameters": [
+                    {
+                        "description": "Dados de validação",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.ValidateTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "valid: true",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/refresh": {
             "post": {
                 "description": "Gera um novo access token a partir de um refresh token válido.",
@@ -1484,6 +1613,17 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_app_auth.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_app_auth.LoginRequest": {
             "type": "object",
             "required": [
@@ -1530,6 +1670,25 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_app_auth.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_app_auth.UserResponse": {
             "type": "object",
             "properties": {
@@ -1562,6 +1721,21 @@ const docTemplate = `{
                 },
                 "role": {},
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.ValidateTokenRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 }
             }

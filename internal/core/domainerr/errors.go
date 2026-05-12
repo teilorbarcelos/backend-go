@@ -10,4 +10,6 @@ var (
 	ErrUnauthorized          = errors.New("não autorizado")
 	ErrSessionCreationFailed = errors.New("falha ao criar sessão")
 	ErrInternal              = errors.New("erro interno do servidor")
+	ErrInvalidToken          = errors.New("token inválido")
+	ErrTokenExpired          = errors.New("token expirado")
 )

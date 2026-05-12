@@ -117,6 +117,13 @@ definitions:
       updated_at:
         type: string
     type: object
+  internal_app_auth.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   internal_app_auth.LoginRequest:
     properties:
       email:
@@ -147,6 +154,19 @@ definitions:
     required:
     - refreshToken
     type: object
+  internal_app_auth.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      token:
+        type: string
+    required:
+    - email
+    - password
+    - token
+    type: object
   internal_app_auth.UserResponse:
     properties:
       active:
@@ -170,6 +190,16 @@ definitions:
       role: {}
       updated_at:
         type: string
+    type: object
+  internal_app_auth.ValidateTokenRequest:
+    properties:
+      email:
+        type: string
+      token:
+        type: string
+    required:
+    - email
+    - token
     type: object
   internal_app_product.CreateProductDTO:
     properties:
@@ -385,6 +415,90 @@ paths:
       security:
       - Bearer: []
       summary: Obter dados do usuário atual
+      tags:
+      - Auth
+  /auth/password/change:
+    post:
+      consumes:
+      - application/json
+      description: Altera a senha do usuário utilizando o código de validação.
+      parameters:
+      - description: Novos dados de senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_app_auth.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: senha alterada com sucesso'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Token inválido ou expirado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Redefinir senha
+      tags:
+      - Auth
+  /auth/password/request:
+    post:
+      consumes:
+      - application/json
+      description: Envia um e-mail com um código de 6 dígitos para o usuário.
+      parameters:
+      - description: Email do usuário
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_app_auth.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: e-mail de recuperação enviado se o usuário existir'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Solicitar recuperação de senha
+      tags:
+      - Auth
+  /auth/password/validate:
+    post:
+      consumes:
+      - application/json
+      description: Verifica se o código de 6 dígitos é válido e não expirou.
+      parameters:
+      - description: Dados de validação
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_app_auth.ValidateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'valid: true'
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "401":
+          description: Token inválido ou expirado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Validar código de recuperação
       tags:
       - Auth
   /auth/refresh:

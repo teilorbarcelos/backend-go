@@ -67,3 +67,25 @@ func TestAuthRepository_FindByEmail(t *testing.T) {
 		assert.Nil(t, found)
 	})
 }
+
+func TestAuthRepository_UpdateAuth(t *testing.T) {
+	repo := NewRepository(database.DB)
+	ctx := context.Background()
+
+	auth := models.Auth{}
+	database.DB.Create(&auth)
+
+	t.Run("Success", func(t *testing.T) {
+		token := "654321"
+		updates := map[string]interface{}{
+			"request_password_token": token,
+		}
+
+		err := repo.UpdateAuth(ctx, auth.ID, updates)
+		assert.NoError(t, err)
+
+		var updated models.Auth
+		database.DB.First(&updated, "id = ?", auth.ID)
+		assert.Equal(t, token, *updated.RequestPasswordToken)
+	})
+}

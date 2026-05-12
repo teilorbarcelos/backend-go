@@ -10,6 +10,7 @@ import (
 
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	UpdateAuth(ctx context.Context, authID string, updates map[string]interface{}) error
 }
 
 type authRepository struct {
@@ -35,4 +36,8 @@ func (r *authRepository) FindByEmail(ctx context.Context, email string) (*models
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *authRepository) UpdateAuth(ctx context.Context, authID string, updates map[string]interface{}) error {
+	return r.DB.WithContext(ctx).Model(&models.Auth{}).Where("id = ?", authID).Updates(updates).Error
 }
