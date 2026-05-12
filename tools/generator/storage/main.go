@@ -73,6 +73,25 @@ func automateRegistration(data TemplateData) {
 			fmt.Println("Registrado Teste na Factory em pkg/storage/factory_test.go")
 		}
 	}
+
+	// 3. Media Module Registration in cmd/api/main.go
+	mainPath := filepath.Join("cmd", "api", "main.go")
+	mainContent, err := os.ReadFile(mainPath)
+	if err == nil {
+		content := string(mainContent)
+		// Adicionar Import
+		if !strings.Contains(content, "backend-go/internal/app/media") {
+			newImport := "\"backend-go/internal/app/product\"\n\t\"backend-go/internal/app/media\""
+			content = strings.Replace(content, "\"backend-go/internal/app/product\"", newImport, 1)
+		}
+		// Adicionar Rota
+		if !strings.Contains(content, "media.RegisterRoutes") {
+			newRoute := "product.RegisterRoutes(protected, database.DB)\n\t\tmedia.RegisterRoutes(protected)"
+			content = strings.Replace(content, "product.RegisterRoutes(protected, database.DB)", newRoute, 1)
+		}
+		os.WriteFile(mainPath, []byte(content), 0644)
+		fmt.Println("Registrado Módulo Media em cmd/api/main.go")
+	}
 }
 
 func main() {
@@ -81,29 +100,36 @@ func main() {
 	}
 
 	name := os.Args[1]
-	// Garantir PascalCase
 	if len(name) > 0 {
 		name = strings.ToUpper(name[:1]) + name[1:]
 	}
 	lowerName := strings.ToLower(name)
 
-	dir := filepath.Join("pkg", "storage")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Fatalf("Erro ao criar diretório %s: %v", dir, err)
-	}
+	// Diretorios
+	storageDir := filepath.Join("pkg", "storage")
+	mediaDir := filepath.Join("internal", "app", "media")
+	os.MkdirAll(storageDir, 0755)
+	os.MkdirAll(mediaDir, 0755)
 
 	data := TemplateData{
 		Name:      name,
 		LowerName: lowerName,
 	}
 
-	// Arquivo do provider
-	writeTemplate(filepath.Join(dir, lowerName+".go"), lowerName+".tpl", data)
-	// Arquivo de teste individual do provider
-	writeTemplate(filepath.Join(dir, lowerName+"_test.go"), "storage_test.tpl", data)
+	// Arquivos do provider
+	writeTemplate(filepath.Join(storageDir, lowerName+".go"), lowerName+".tpl", data)
+	writeTemplate(filepath.Join(storageDir, lowerName+"_test.go"), "storage_test.tpl", data)
 
-	// Automação (Factory e Factory Test)
+	// Arquivos do módulo Media (se não existirem)
+	if _, err := os.Stat(filepath.Join(mediaDir, "service.go")); os.IsNotExist(err) {
+		writeTemplate(filepath.Join(mediaDir, "service.go"), "media_service.tpl", data)
+		writeTemplate(filepath.Join(mediaDir, "handler.go"), "media_handler.tpl", data)
+		writeTemplate(filepath.Join(mediaDir, "routes.go"), "media_routes.tpl", data)
+		writeTemplate(filepath.Join(mediaDir, "media_test.go"), "media_test.tpl", data)
+	}
+
+	// Automação
 	automateRegistration(data)
 
-	fmt.Printf("\nDriver de storage '%s' instalado e registrado com sucesso!\n", name)
+	fmt.Printf("\nDriver de storage '%s' e Módulo Media instalados com sucesso!\n", name)
 }
