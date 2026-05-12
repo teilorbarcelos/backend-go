@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"backend-go/internal/core/domainerr"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,6 +26,17 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refreshToken" binding:"required"`
 }
 
+// Login realiza a autenticação do usuário
+// @Summary Realizar Login
+// @Description Autentica o usuário com email e senha, retornando tokens JWT e dados do usuário.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Credenciais de acesso"
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} map[string]string "Dados inválidos"
+// @Failure 401 {object} map[string]string "Credenciais inválidas"
+// @Router /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,6 +53,15 @@ func (h *Handler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// Me retorna os dados do usuário autenticado
+// @Summary Obter dados do usuário atual
+// @Description Retorna informações do usuário logado baseado no token JWT.
+// @Tags Auth
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} LoginResponse
+// @Failure 401 {object} map[string]string "Não autorizado"
+// @Router /auth/me [get]
 func (h *Handler) Me(c *gin.Context) {
 	email, exists := c.Get("userEmail")
 	if !exists {
@@ -57,6 +78,17 @@ func (h *Handler) Me(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// Refresh renova o token de acesso
+// @Summary Renovar token
+// @Description Gera um novo access token a partir de um refresh token válido.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshRequest true "Refresh token"
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} map[string]string "Dados inválidos"
+// @Failure 401 {object} map[string]string "Refresh token inválido ou expirado"
+// @Router /auth/refresh [post]
 func (h *Handler) Refresh(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

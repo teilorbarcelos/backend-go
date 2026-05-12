@@ -7,16 +7,6 @@ import (
 	"backend-go/pkg/database"
 )
 
-type RoleServiceI interface {
-	ListFeatures(ctx context.Context) ([]models.Feature, error)
-	Create(ctx context.Context, dto CreateRoleDTO) (*models.Role, error)
-	Update(ctx context.Context, id string, dto CreateRoleDTO) (*models.Role, error)
-	List(ctx context.Context, params database.FilterParams) ([]models.Role, int64, error)
-	GetByID(ctx context.Context, id string) (*models.Role, error)
-	Delete(ctx context.Context, id string) error
-	SetStatus(ctx context.Context, id string, active bool) error
-}
-
 type RoleService struct {
 	Repo           RoleRepositoryI
 	SessionManager session.SessionStore

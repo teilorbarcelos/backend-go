@@ -14,7 +14,7 @@ type User struct {
 	IDAuth    *string `gorm:"type:varchar(40);unique" json:"id_auth"`
 	IDRole    string  `gorm:"type:varchar(40);not null" json:"id_role"`
 
-	Auth *Auth `gorm:"foreignKey:IDAuth" json:"Auth,omitempty"`
+	Auth *Auth `gorm:"foreignKey:IDAuth" json:"Auth,omitempty" swaggerignore:"true"`
 	Role *Role `gorm:"foreignKey:IDRole" json:"Role,omitempty"`
 }
 
@@ -27,7 +27,7 @@ type Auth struct {
 	FirstAccess               bool       `gorm:"default:true" json:"first_access"`
 	Active                    bool       `gorm:"default:true" json:"active"`
 
-	User *User `gorm:"foreignKey:IDAuth" json:"user,omitempty"`
+	User *User `gorm:"foreignKey:IDAuth" json:"user,omitempty" swaggerignore:"true"`
 }
 
 type Role struct {
@@ -35,7 +35,7 @@ type Role struct {
 	Name        string        `gorm:"type:varchar(255);not null" json:"name"`
 	Description string        `gorm:"type:varchar(255);not null" json:"description"`
 	Active      bool          `gorm:"default:true" json:"active"`
-	Users       []User        `gorm:"foreignKey:IDRole" json:"Users,omitempty"`
+	Users       []User        `gorm:"foreignKey:IDRole" json:"Users,omitempty" swaggerignore:"true"`
 	RoleFeature []RoleFeature `gorm:"foreignKey:IDRole" json:"RoleFeature,omitempty"`
 }
 
@@ -44,7 +44,7 @@ type Feature struct {
 	Name        string        `gorm:"type:varchar(255);not null" json:"name"`
 	Description string        `gorm:"not null" json:"description"`
 	Active      bool          `gorm:"default:true" json:"active"`
-	RoleFeature []RoleFeature `gorm:"foreignKey:IDFeature" json:"RoleFeature,omitempty"`
+	RoleFeature []RoleFeature `gorm:"foreignKey:IDFeature" json:"RoleFeature,omitempty" swaggerignore:"true"`
 }
 
 type RoleFeature struct {
@@ -55,6 +55,6 @@ type RoleFeature struct {
 	Activate  bool   `gorm:"default:false" json:"activate"`
 	Delete    bool   `gorm:"default:false" json:"delete"`
 
-	Role    Role    `gorm:"foreignKey:IDRole;references:ID" json:"role"`
-	Feature Feature `gorm:"foreignKey:IDFeature;references:ID" json:"feature"`
+	Role    Role    `gorm:"foreignKey:IDRole;references:ID" json:"role" swaggerignore:"true"`
+	Feature Feature `gorm:"foreignKey:IDFeature;references:ID" json:"feature" swaggerignore:"true"`
 }

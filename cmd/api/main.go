@@ -15,13 +15,34 @@ import (
 	"backend-go/internal/app/user"
 	"backend-go/internal/infra/session"
 	"backend-go/internal/middleware"
+	_ "backend-go/docs"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 	"backend-go/pkg/messaging"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title Backend Go API
+// @version 1.0
+// @description API modular em Go com Gin e Swagger.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name Suporte API
+// @contact.url http://www.swagger.io/support
+// @contact.email suporte@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8888
+// @BasePath /v1
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
 
 func main() {
 	config.LoadConfig()
@@ -49,6 +70,10 @@ func main() {
 
 	v1 := r.Group("/v1")
 	{
+		v1.GET("/docs", func(c *gin.Context) {
+			c.Redirect(http.StatusMovedPermanently, "/v1/docs/index.html")
+		})
+		v1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
 		auth.RegisterRoutes(v1, protected, database.DB)

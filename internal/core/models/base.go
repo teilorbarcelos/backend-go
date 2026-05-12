@@ -12,7 +12,7 @@ type BaseModel struct {
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	IsDeleted bool           `gorm:"default:false" json:"is_deleted"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty" swaggertype:"string"`
 }
 
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) (err error) {

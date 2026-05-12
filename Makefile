@@ -5,7 +5,8 @@ ENVIRONMENT ?= development
 GO_TEST_FLAGS ?= -v
 
 dev:
-	@if command -v air > /dev/null; then \
+	@export PATH=$$PATH:$$(go env GOPATH)/bin && \
+	if command -v air > /dev/null; then \
 	    air; \
 	elif [ -f $$(go env GOPATH)/bin/air ]; then \
 	    $$(go env GOPATH)/bin/air; \
@@ -32,6 +33,10 @@ coverage-html:
 	@go tool cover -html=coverage.out
 
 # Geradores
+swagger:
+	@echo "Gerando documentação Swagger..."
+	@$(go env GOPATH)/bin/swag init -g cmd/api/main.go --parseDependency --parseInternal
+
 generate:
 	go run tools/generator/crud/main.go $(name)
 
