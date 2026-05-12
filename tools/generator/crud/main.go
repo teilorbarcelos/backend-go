@@ -55,6 +55,19 @@ func automateRegistration(data TemplateData) {
 		}
 	}
 
+	// 1b. Registrar no AutoMigrate em pkg/testutil/containers.go
+	testUtilPath := filepath.Join("pkg", "testutil", "containers.go")
+	testUtilContent, err := os.ReadFile(testUtilPath)
+	if err == nil {
+		content := string(testUtilContent)
+		if !strings.Contains(content, "&models."+data.Name+"{}") {
+			newModel := fmt.Sprintf("&models.Product{},\n\t\t&models.%s{},", data.Name)
+			content = strings.Replace(content, "&models.Product{},", newModel, 1)
+			os.WriteFile(testUtilPath, []byte(content), 0644)
+			fmt.Println("Registrado AutoMigrate em pkg/testutil/containers.go")
+		}
+	}
+
 	// 2. Registrar Rotas em cmd/api/main.go
 	mainPath := filepath.Join("cmd", "api", "main.go")
 	mainContent, err := os.ReadFile(mainPath)
@@ -112,6 +125,7 @@ func main() {
 	writeTemplate(filepath.Join(appDir, "repository_test.go"), "repository_test.tpl", data)
 	writeTemplate(filepath.Join(appDir, "service_test.go"), "service_test.tpl", data)
 	writeTemplate(filepath.Join(appDir, "handler_test.go"), "handler_test.tpl", data)
+	writeTemplate(filepath.Join(appDir, "main_test.go"), "main_test.tpl", data)
 
 	// Arquivo do modelo
 	writeTemplate(filepath.Join(modelDir, lowerName+".go"), "model.tpl", data)

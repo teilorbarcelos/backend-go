@@ -1,23 +1,12 @@
 package {{.LowerName}}
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
-	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 )
-
-func TestMain(m *testing.M) {
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	database.ConnectDB()
-
-	code := m.Run()
-	os.Exit(code)
-}
 
 func Test{{.Name}}Repository_Create(t *testing.T) {
 	repo := New{{.Name}}Repository(database.DB)

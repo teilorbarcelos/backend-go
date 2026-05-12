@@ -43,6 +43,13 @@ generate:
 storage-driver:
 	go run tools/generator/storage/main.go $(name)
 
+# Migrations
+migrate-diff:
+	@go run ariga.io/atlas/cmd/atlas@latest migrate diff $(name) --env gorm
+
+migrate-up:
+	@go run ariga.io/atlas/cmd/atlas@latest migrate apply --env gorm --url "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
 # Infraestrutura
 infra-up:
 	docker compose -f docker-compose.infra.yml up -d

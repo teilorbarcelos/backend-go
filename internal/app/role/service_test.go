@@ -76,8 +76,9 @@ func TestRoleService_Create(t *testing.T) {
 	}
 
 	role, err := service.Create(ctx, dto)
-	assert.NoError(t, err)
-	assert.NotNil(t, role)
+	if assert.NoError(t, err) {
+		assert.NotNil(t, role)
+	}
 }
 
 func TestRoleService_Update(t *testing.T) {
@@ -89,10 +90,11 @@ func TestRoleService_Update(t *testing.T) {
 	r1, _ := service.Create(ctx, CreateRoleDTO{Name: "R1", Description: "D"})
 
 	t.Run("Success", func(t *testing.T) {
-		dto := CreateRoleDTO{Name: "Updated R1", Description: "D"}
+		dto := CreateRoleDTO{Name: "Updated R1-unique", Description: "D"}
 		res, err := service.Update(ctx, r1.ID, dto)
-		assert.NoError(t, err)
-		assert.Equal(t, "Updated R1", res.Name)
+		if assert.NoError(t, err) && assert.NotNil(t, res) {
+			assert.Equal(t, "Updated R1-unique", res.Name)
+		}
 	})
 
 	t.Run("Error - Duplicate Permissions", func(t *testing.T) {

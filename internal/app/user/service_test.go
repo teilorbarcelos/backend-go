@@ -3,14 +3,12 @@ package user
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
-	"backend-go/pkg/cache"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 )
@@ -68,16 +66,6 @@ func (m *MockUserRepository) WithContext(ctx context.Context) UserRepositoryI {
 	return m
 }
 
-func TestMain(m *testing.M) {
-	// Setup test environment
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	database.ConnectDB()
-	cache.ConnectRedis()
-
-	code := m.Run()
-	os.Exit(code)
-}
 
 func TestUserService_Create(t *testing.T) {
 	repo := NewUserRepository(database.DB)
@@ -86,7 +74,7 @@ func TestUserService_Create(t *testing.T) {
 
 	dto := CreateUserDTO{
 		Name:     "Test User",
-		Email:    "test@example.com",
+		Email:    "test-create@example.com",
 		Password: "password123",
 		IDRole:   "administrator",
 	}
@@ -111,7 +99,7 @@ func TestUserService_Update(t *testing.T) {
 	// 1. Setup a regular user
 	user, err := service.Create(ctx, CreateUserDTO{
 		Name:     "Old Name",
-		Email:    "old-update@email.com",
+		Email:    "old-update-unique@email.com",
 		Password: "password",
 		IDRole:   "administrator",
 	})
@@ -124,9 +112,10 @@ func TestUserService_Update(t *testing.T) {
 			IDRole: "manager",
 			Active: &active,
 		})
-		assert.NoError(t, err)
-		assert.Equal(t, "New Name", updated.Name)
-		assert.Equal(t, "manager", updated.IDRole)
+		if assert.NoError(t, err) && assert.NotNil(t, updated) {
+			assert.Equal(t, "New Name", updated.Name)
+			assert.Equal(t, "manager", updated.IDRole)
+		}
 	})
 
 	t.Run("Update password", func(t *testing.T) {
@@ -138,10 +127,11 @@ func TestUserService_Update(t *testing.T) {
 
 	t.Run("Update email", func(t *testing.T) {
 		updated, err := service.Update(ctx, user.ID, UpdateUserDTO{
-			Email: "new@email.com",
+			Email: "new-email-unique@email.com",
 		})
-		assert.NoError(t, err)
-		assert.Equal(t, "new@email.com", updated.Email)
+		if assert.NoError(t, err) && assert.NotNil(t, updated) {
+			assert.Equal(t, "new-email-unique@email.com", updated.Email)
+		}
 	})
 
 	t.Run("Admin protections", func(t *testing.T) {
@@ -202,7 +192,7 @@ func TestUserService_List(t *testing.T) {
 	ctx := context.Background()
 	_, err := service.Create(ctx, CreateUserDTO{
 		Name:     "List Test",
-		Email:    "list-unique@example.com",
+		Email:    "list-unique-test@example.com",
 		Password: "password123",
 		IDRole:   "administrator",
 	})
@@ -217,10 +207,10 @@ func TestUserService_List(t *testing.T) {
 	}
 
 	users, total, err := service.List(ctx, params)
-
-	assert.NoError(t, err)
-	assert.True(t, total > 0)
-	assert.NotEmpty(t, users)
+	if assert.NoError(t, err) {
+		assert.True(t, total > 0)
+		assert.NotEmpty(t, users)
+	}
 }
 
 func TestUserService_Delete(t *testing.T) {
@@ -232,18 +222,18 @@ func TestUserService_Delete(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		user, err := service.Create(ctx, CreateUserDTO{
 			Name:     "Delete Me",
-			Email:    "delete-unique@me.com",
+			Email:    "delete-unique-service@me.com",
 			Password: "password",
 			IDRole:   "administrator",
 		})
-		assert.NoError(t, err)
-
-		err = service.Delete(ctx, user.ID)
-		assert.NoError(t, err)
-
-		// Verify it's gone
-		_, err = service.GetByID(ctx, user.ID)
-		assert.Error(t, err)
+		if assert.NoError(t, err) && assert.NotNil(t, user) {
+			err = service.Delete(ctx, user.ID)
+			assert.NoError(t, err)
+	
+			// Verify it's gone
+			_, err = service.GetByID(ctx, user.ID)
+			assert.Error(t, err)
+		}
 	})
 
 	t.Run("Admin protection", func(t *testing.T) {
@@ -266,17 +256,19 @@ func TestUserService_SetStatus(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		user, err := service.Create(ctx, CreateUserDTO{
 			Name:     "Status Test",
-			Email:    "status-unique@email.com",
+			Email:    "status-unique-service@email.com",
 			Password: "password",
 			IDRole:   "administrator",
 		})
-		assert.NoError(t, err)
-
-		err = service.SetStatus(ctx, user.ID, false)
-		assert.NoError(t, err)
-
-		updated, _ := service.GetByID(ctx, user.ID)
-		assert.False(t, updated.Active)
+		if assert.NoError(t, err) && assert.NotNil(t, user) {
+			err = service.SetStatus(ctx, user.ID, false)
+			assert.NoError(t, err)
+	
+			updated, _ := service.GetByID(ctx, user.ID)
+			if assert.NotNil(t, updated) {
+				assert.False(t, updated.Active)
+			}
+		}
 	})
 
 	t.Run("Admin protection", func(t *testing.T) {

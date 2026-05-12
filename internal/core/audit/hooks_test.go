@@ -2,47 +2,16 @@ package audit
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
-	"backend-go/pkg/config"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 type AuditTestModel struct {
 	models.BaseModel
 	Name string `gorm:"type:varchar(255)"`
-}
-
-var testDB *gorm.DB
-
-func TestMain(m *testing.M) {
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	
-	// Initialize local DB for testing
-	var err error
-	testDB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-		},
-	})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	// Register hooks manually for the test DB
-	RegisterAuditHooks(testDB)
-	
-	// Create tables for testing
-	testDB.AutoMigrate(&models.AuditLog{}, &AuditTestModel{})
-	
-	code := m.Run()
-	os.Exit(code)
 }
 
 func TestAuditHooks(t *testing.T) {

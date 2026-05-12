@@ -1,7 +1,8 @@
-package auth
+package {{.LowerName}}
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -18,13 +19,12 @@ func TestMain(m *testing.M) {
 	config.LoadConfig()
 
 	ctx := context.Background()
-
-	// Setup Postgres
 	pg, err := testutil.SetupPostgresContainer(ctx)
 	if err != nil {
 		log.Fatalf("Falha ao subir Postgres Container: %v", err)
 	}
 	defer pg.Terminate(ctx)
+
 	database.DB = pg.DB
 	connStr, _ := pg.ConnectionString(ctx, "sslmode=disable")
 	config.AppConfig.DBUrl = connStr
@@ -38,6 +38,14 @@ func TestMain(m *testing.M) {
 
 	opts, _ := redis.ParseURL(rd.URI)
 	cache.RedisClient = redis.NewClient(opts)
+
+	// Clean and Seed mandatory roles
+	tables := []string{"audit_log", "auth", "user", "product", "role_feature", "feature", "role", "{{.LowerName}}"}
+	for _, table := range tables {
+		database.DB.Exec(fmt.Sprintf("TRUNCATE TABLE \"%s\" CASCADE", table))
+	}
+	
+	database.RunSeed(database.DB)
 
 	code := m.Run()
 	os.Exit(code)

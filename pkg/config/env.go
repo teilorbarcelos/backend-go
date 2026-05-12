@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"backend-go/pkg/logger"
 
 	"github.com/spf13/viper"
 )
@@ -18,12 +18,13 @@ type Config struct {
 	RateLimitWindow   string `mapstructure:"RATE_LIMIT_WINDOW"`
 	FirstUserEmail    string `mapstructure:"FIRST_USER"`
 	FirstUserPassword string `mapstructure:"FIRST_PASSWORD"`
+	LogLevel          string `mapstructure:"LOG_LEVEL"`
 }
 
 var AppConfig Config
 
 var (
-	logFatalf      = log.Fatalf
+	logFatalf      = logger.Fatalf
 	viperUnmarshal = viper.Unmarshal
 )
 
@@ -42,7 +43,7 @@ func LoadConfig() {
 	viper.SetDefault("FIRST_PASSWORD", "admin@123")
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)
+		logger.Log.Sugar().Warnf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)
 	}
 
 	if err := viperUnmarshal(&AppConfig); err != nil {

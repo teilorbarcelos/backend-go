@@ -1,4 +1,4 @@
-package repository
+package database
 
 import (
 	"context"
@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"backend-go/pkg/config"
-	"backend-go/pkg/database"
 	"backend-go/pkg/testutil"
+	"gorm.io/gorm"
 )
+
+var testDB *gorm.DB
 
 func TestMain(m *testing.M) {
 	os.Setenv("ENVIRONMENT", "test")
@@ -22,7 +24,9 @@ func TestMain(m *testing.M) {
 	}
 	defer pg.Terminate(ctx)
 
-	database.DB = pg.DB
+	testDB = pg.DB
+	DB = pg.DB
+
 	connStr, _ := pg.ConnectionString(ctx, "sslmode=disable")
 	config.AppConfig.DBUrl = connStr
 

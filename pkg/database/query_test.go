@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 type TestRole struct {
@@ -25,12 +23,7 @@ type TestModel struct {
 }
 
 func TestApplyFilters_Functionality(t *testing.T) {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		DryRun: true,
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-		},
-	})
+	db := testDB.Session(&gorm.Session{DryRun: true})
 
 	t.Run("Basic Equality Filter", func(t *testing.T) {
 		params := FilterParams{
@@ -47,7 +40,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		// Verifica se incluiu o prefixo da tabela (test_model) para evitar ambiguidade
 		assert.Contains(t, strings.ToLower(sql), "test_model")
 		assert.Contains(t, strings.ToLower(sql), "name")
-		assert.Contains(t, sql, "\"John\"")
+		assert.Contains(t, sql, "'John'")
 	})
 
 	t.Run("Range Filters _start and _end", func(t *testing.T) {
@@ -82,7 +75,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		assert.Contains(t, strings.ToLower(sql), "name")
 		assert.Contains(t, strings.ToLower(sql), "email")
-		assert.Contains(t, sql, "\"%test%\"")
+		assert.Contains(t, sql, "'%test%'")
 	})
 
 	t.Run("Sorting ASC and DESC", func(t *testing.T) {
@@ -130,7 +123,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		assert.Contains(t, strings.ToUpper(sql), "TEST_ROLE")
 		assert.Contains(t, strings.ToLower(sql), "role")
 		assert.Contains(t, strings.ToLower(sql), "name")
-		assert.Contains(t, sql, "\"Admin\"")
+		assert.Contains(t, sql, "'Admin'")
 	})
 
 	t.Run("Operator contains and custom TargetKey", func(t *testing.T) {
@@ -145,8 +138,8 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
-		assert.Regexp(t, `(?i)LIKE`, sql)
-		assert.Contains(t, sql, "\"%John%\"")
+		assert.Regexp(t, `(?i)ILIKE`, sql)
+		assert.Contains(t, sql, "'%John%'")
 		assert.Contains(t, strings.ToLower(sql), "name")
 	})
 
@@ -163,7 +156,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		assert.Contains(t, strings.ToUpper(sql), "JOIN")
 		assert.Contains(t, strings.ToUpper(sql), "TEST_ROLE")
-		assert.Regexp(t, `(?i)LIKE`, sql)
+		assert.Regexp(t, `(?i)ILIKE`, sql)
 	})
 
 	t.Run("Ordering with created_at and Page < 1", func(t *testing.T) {
@@ -196,7 +189,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		
 		// Deve ter apenas um JOIN
 		assert.Equal(t, 1, strings.Count(strings.ToUpper(sql), "JOIN"))
-		assert.Contains(t, sql, " = \"Admin\"")
+		assert.Contains(t, sql, " = 'Admin'")
 		assert.Contains(t, sql, " = 1")
 	})
 
@@ -229,7 +222,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Table("test_model").Find(&[]TestModel{}) })
 		// Não deve ter o prefixo da tabela na cláusula WHERE se mainTable for ""
 		assert.NotContains(t, sql, "test_model.name")
-		assert.Contains(t, sql, "name = \"John\"")
+		assert.Contains(t, sql, "name = 'John'")
 	})
 
 	t.Run("Empty SearchFields and Invalid Model", func(t *testing.T) {
@@ -287,12 +280,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 }
 
 func TestApplyFilters_Validation(t *testing.T) {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		DryRun: true,
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-		},
-	})
+	db := testDB.Session(&gorm.Session{DryRun: true})
 
 	t.Run("Blocked Filter", func(t *testing.T) {
 		filterable := map[string]FilterConfig{"name": {}}

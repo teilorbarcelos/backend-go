@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/pkg/config"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +16,7 @@ func TestConnectDB(t *testing.T) {
 	origFatalf := logFatalf
 	origGormOpen := gormOpen
 	origAutoMigrate := dbAutoMigrate
+	origRunMigrations := runMigrations
 	origDB := DB
 
 	defer func() {
@@ -25,6 +25,7 @@ func TestConnectDB(t *testing.T) {
 		logFatalf = origFatalf
 		gormOpen = origGormOpen
 		dbAutoMigrate = origAutoMigrate
+		runMigrations = origRunMigrations
 		DB = origDB
 	}()
 
@@ -42,9 +43,10 @@ func TestConnectDB(t *testing.T) {
 		config.AppConfig.Environment = "production"
 		// Mock gormOpen to use sqlite even in "production" mode for the test
 		gormOpen = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
-			return gorm.Open(sqlite.Open("file::memory:?cache=shared"), opts...)
+			return testDB, nil
 		}
 		dbAutoMigrate = func(db *gorm.DB, dst ...interface{}) error { return nil }
+		runMigrations = func() {}
 		logFatalf = origFatalf
 
 		ConnectDB()
@@ -72,7 +74,7 @@ func TestConnectDB(t *testing.T) {
 	t.Run("Failure on AutoMigrate", func(t *testing.T) {
 		config.AppConfig.Environment = "test"
 		gormOpen = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
-			return gorm.Open(sqlite.Open("file::memory:?cache=shared"), opts...)
+			return testDB, nil
 		}
 		dbAutoMigrate = func(db *gorm.DB, dst ...interface{}) error {
 			return errors.New("migration error")

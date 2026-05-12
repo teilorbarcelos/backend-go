@@ -126,6 +126,7 @@ func main() {
 		writeTemplate(filepath.Join(mediaDir, "handler.go"), "media_handler.tpl", data)
 		writeTemplate(filepath.Join(mediaDir, "routes.go"), "media_routes.tpl", data)
 		writeTemplate(filepath.Join(mediaDir, "media_test.go"), "media_test.tpl", data)
+		writeTemplate(filepath.Join(mediaDir, "main_test.go"), "main_test.tpl", data)
 	}
 
 	// Automação

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,15 +12,18 @@ import (
 	"backend-go/internal/app/product"
 	"backend-go/internal/app/role"
 	"backend-go/internal/app/user"
+	"backend-go/internal/core/audit"
 	"backend-go/internal/infra/session"
 	"backend-go/internal/middleware"
 	_ "backend-go/docs"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
+	"backend-go/pkg/logger"
 	"backend-go/pkg/messaging"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -46,16 +48,20 @@ import (
 
 func main() {
 	config.LoadConfig()
+	logger.InitLogger(config.AppConfig.Environment)
 
 	if config.AppConfig.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	database.ConnectDB()
+	audit.RegisterAuditHooks(database.DB)
 	cache.ConnectRedis()
 	messaging.ConnectRabbitMQ()
 
-	r := gin.Default()
-
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(middleware.Logger())
+	r.Use(middleware.Metrics())
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimitMiddleware())
 
@@ -65,6 +71,8 @@ func main() {
 			"environment": config.AppConfig.Environment,
 		})
 	})
+
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	sessionMgr := session.NewSessionManager()
 
@@ -89,28 +97,28 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Iniciando servidor em http://%s", addr)
+		logger.Log.Sugar().Infof("Iniciando servidor em http://%s", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Erro ao iniciar servidor: %v", err)
+			logger.Log.Sugar().Fatalf("Erro ao iniciar servidor: %v", err)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Encerrando servidor...")
+	logger.Info("Encerrando servidor...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Forçar encerramento do servidor: %v", err)
+		logger.Log.Sugar().Fatalf("Forçar encerramento do servidor: %v", err)
 	}
 
-	log.Println("Limpando recursos...")
+	logger.Info("Limpando recursos...")
 	if messaging.RabbitConn != nil {
 		messaging.RabbitConn.Close()
 	}
 
-	log.Println("Servidor finalizado com sucesso.")
+	logger.Info("Servidor finalizado com sucesso.")
 }
