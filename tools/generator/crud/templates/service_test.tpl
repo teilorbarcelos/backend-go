@@ -13,13 +13,33 @@ func Test{{.Name}}Service_Create(t *testing.T) {
 	service := New{{.Name}}Service(repo)
 	ctx := context.Background()
 
-	entity := &{{.Name}}{
+	dto := Create{{.Name}}DTO{
 		Name: "Service Test",
 	}
 
-	err := service.Create(ctx, entity)
+	entity, err := service.Create(ctx, dto)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, entity.ID)
+	assert.NotNil(t, entity)
+	assert.Equal(t, dto.Name, entity.Name)
+}
+
+func Test{{.Name}}Service_Update(t *testing.T) {
+	repo := New{{.Name}}Repository(database.DB)
+	service := New{{.Name}}Service(repo)
+	ctx := context.Background()
+
+	c, _ := service.Create(ctx, Create{{.Name}}DTO{Name: "C"})
+
+	t.Run("Success", func(t *testing.T) {
+		res, err := service.Update(ctx, c.ID, map[string]interface{}{"name": "N"})
+		assert.NoError(t, err)
+		assert.Equal(t, "N", res.Name)
+	})
+
+	t.Run("Error - Database Constraint", func(t *testing.T) {
+		_, err := service.Update(ctx, c.ID, map[string]interface{}{"name": nil})
+		assert.Error(t, err)
+	})
 }
 
 func Test{{.Name}}Service_List(t *testing.T) {
@@ -38,4 +58,44 @@ func Test{{.Name}}Service_List(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, items)
 	assert.True(t, total >= 0)
+}
+
+func Test{{.Name}}Service_GetByID(t *testing.T) {
+	repo := New{{.Name}}Repository(database.DB)
+	service := New{{.Name}}Service(repo)
+	ctx := context.Background()
+
+	c, _ := service.Create(ctx, Create{{.Name}}DTO{Name: "G"})
+
+	res, err := service.GetByID(ctx, c.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, c.ID, res.ID)
+}
+
+func Test{{.Name}}Service_Delete(t *testing.T) {
+	repo := New{{.Name}}Repository(database.DB)
+	service := New{{.Name}}Service(repo)
+	ctx := context.Background()
+
+	c, _ := service.Create(ctx, Create{{.Name}}DTO{Name: "D"})
+
+	err := service.Delete(ctx, c.ID)
+	assert.NoError(t, err)
+
+	_, err = service.GetByID(ctx, c.ID)
+	assert.Error(t, err)
+}
+
+func Test{{.Name}}Service_SetStatus(t *testing.T) {
+	repo := New{{.Name}}Repository(database.DB)
+	service := New{{.Name}}Service(repo)
+	ctx := context.Background()
+
+	c, _ := service.Create(ctx, Create{{.Name}}DTO{Name: "S"})
+
+	err := service.SetStatus(ctx, c.ID, false)
+	assert.NoError(t, err)
+
+	res, _ := service.GetByID(ctx, c.ID)
+	assert.False(t, res.Active)
 }

@@ -11,6 +11,7 @@ import (
 	"text/template"
 )
 
+//go:embed templates/*
 var templatesFS embed.FS
 
 type TemplateData struct {
@@ -40,17 +41,62 @@ func writeTemplate(outputPath, templateName string, data TemplateData) {
 	fmt.Printf("Criado: %s\n", outputPath)
 }
 
+func automateRegistration(data TemplateData) {
+	// 1. Registrar no AutoMigrate em pkg/database/db.go
+	dbPath := filepath.Join("pkg", "database", "db.go")
+	dbContent, err := os.ReadFile(dbPath)
+	if err == nil {
+		content := string(dbContent)
+		if !strings.Contains(content, "&models."+data.Name+"{}") {
+			newModel := fmt.Sprintf("&models.Product{},\n\t\t&models.%s{},", data.Name)
+			content = strings.Replace(content, "&models.Product{},", newModel, 1)
+			os.WriteFile(dbPath, []byte(content), 0644)
+			fmt.Println("Registrado AutoMigrate em pkg/database/db.go")
+		}
+	}
+
+	// 2. Registrar Rotas em cmd/api/main.go
+	mainPath := filepath.Join("cmd", "api", "main.go")
+	mainContent, err := os.ReadFile(mainPath)
+	if err == nil {
+		content := string(mainContent)
+		// Adicionar Import
+		if !strings.Contains(content, "backend-go/internal/app/"+data.LowerName) {
+			newImport := fmt.Sprintf("\"backend-go/internal/app/product\"\n\t\"backend-go/internal/app/%s\"", data.LowerName)
+			content = strings.Replace(content, "\"backend-go/internal/app/product\"", newImport, 1)
+		}
+		// Adicionar Rota
+		if !strings.Contains(content, data.LowerName+".RegisterRoutes") {
+			newRoute := fmt.Sprintf("product.RegisterRoutes(protected, database.DB)\n\t\t%s.RegisterRoutes(protected, database.DB)", data.LowerName)
+			content = strings.Replace(content, "product.RegisterRoutes(protected, database.DB)", newRoute, 1)
+		}
+		os.WriteFile(mainPath, []byte(content), 0644)
+		fmt.Println("Registrado Rotas em cmd/api/main.go")
+	}
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("Uso: go run tools/generator/crud/main.go <ModuleName>")
 	}
 
 	name := os.Args[1]
+	// Garantir que Name comece com letra maiúscula (PascalCase) para tipos Go
+	if len(name) > 0 {
+		name = strings.ToUpper(name[:1]) + name[1:]
+	}
 	lowerName := strings.ToLower(name)
 
-	dir := filepath.Join("internal", "app", lowerName)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Fatalf("Erro ao criar diretório %s: %v", dir, err)
+	// Diretório do módulo
+	appDir := filepath.Join("internal", "app", lowerName)
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		log.Fatalf("Erro ao criar diretório %s: %v", appDir, err)
+	}
+
+	// Diretório do modelo
+	modelDir := filepath.Join("internal", "core", "models")
+	if err := os.MkdirAll(modelDir, 0755); err != nil {
+		log.Fatalf("Erro ao criar diretório %s: %v", modelDir, err)
 	}
 
 	data := TemplateData{
@@ -58,12 +104,20 @@ func main() {
 		LowerName: lowerName,
 	}
 
-	writeTemplate(filepath.Join(dir, "repository.go"), "repository.tpl", data)
-	writeTemplate(filepath.Join(dir, "service.go"), "service.tpl", data)
-	writeTemplate(filepath.Join(dir, "handler.go"), "handler.tpl", data)
-	writeTemplate(filepath.Join(dir, "repository_test.go"), "repository_test.tpl", data)
-	writeTemplate(filepath.Join(dir, "service_test.go"), "service_test.tpl", data)
-	writeTemplate(filepath.Join(dir, "handler_test.go"), "handler_test.tpl", data)
+	// Arquivos do módulo
+	writeTemplate(filepath.Join(appDir, "repository.go"), "repository.tpl", data)
+	writeTemplate(filepath.Join(appDir, "service.go"), "service.tpl", data)
+	writeTemplate(filepath.Join(appDir, "handler.go"), "handler.tpl", data)
+	writeTemplate(filepath.Join(appDir, "routes.go"), "routes.tpl", data)
+	writeTemplate(filepath.Join(appDir, "repository_test.go"), "repository_test.tpl", data)
+	writeTemplate(filepath.Join(appDir, "service_test.go"), "service_test.tpl", data)
+	writeTemplate(filepath.Join(appDir, "handler_test.go"), "handler_test.tpl", data)
 
-	fmt.Printf("\nMódulo '%s' gerado com sucesso em '%s'.\n", name, dir)
+	// Arquivo do modelo
+	writeTemplate(filepath.Join(modelDir, lowerName+".go"), "model.tpl", data)
+
+	// Automação de registros
+	automateRegistration(data)
+
+	fmt.Printf("\nMódulo '%s' gerado e registrado com sucesso!\n", name)
 }
