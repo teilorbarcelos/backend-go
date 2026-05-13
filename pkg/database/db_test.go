@@ -2,12 +2,25 @@ package database
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/pkg/config"
 	"gorm.io/gorm"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
+
+type mockMigrator struct {
+	upFunc func() error
+}
+
+func (m *mockMigrator) Up() error {
+	return m.upFunc()
+}
 
 func TestConnectDB(t *testing.T) {
 	// Backup original values
@@ -86,6 +99,86 @@ func TestConnectDB(t *testing.T) {
 
 		assert.PanicsWithValue(t, "fatal: migration", func() {
 			ConnectDB()
+		})
+	})
+}
+
+func TestDefaultRunMigrations(t *testing.T) {
+	origMigrateNew := migrateNew
+	origFatalf := logFatalf
+	defer func() {
+		migrateNew = origMigrateNew
+		logFatalf = origFatalf
+	}()
+
+	t.Run("Success or No Change", func(t *testing.T) {
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return &mockMigrator{
+				upFunc: func() error {
+					return nil // or migrate.ErrNoChange
+				},
+			}, nil
+		}
+		
+		assert.NotPanics(t, func() {
+			defaultRunMigrations()
+		})
+
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return &mockMigrator{
+				upFunc: func() error {
+					return migrate.ErrNoChange
+				},
+			}, nil
+		}
+		
+		assert.NotPanics(t, func() {
+			defaultRunMigrations()
+		})
+	})
+
+	t.Run("Failure on migrate.New", func(t *testing.T) {
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return nil, errors.New("new error")
+		}
+		logFatalf = func(format string, v ...interface{}) {
+			panic("fatal: new")
+		}
+		assert.PanicsWithValue(t, "fatal: new", func() {
+			defaultRunMigrations()
+		})
+	})
+
+	t.Run("Failure on m.Up", func(t *testing.T) {
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return &mockMigrator{
+				upFunc: func() error {
+					return errors.New("up error")
+				},
+			}, nil
+		}
+		
+		logFatalf = func(format string, v ...interface{}) {
+			panic("fatal: up")
+		}
+		
+		assert.PanicsWithValue(t, "fatal: up", func() {
+			defaultRunMigrations()
+		})
+	})
+
+	t.Run("Real Integration test branch coverage", func(t *testing.T) {
+		// Just to be sure we also run the real one if possible
+		tmpDir := t.TempDir()
+		dummyFile := filepath.Join(tmpDir, "000001_init.up.sql")
+		os.WriteFile(dummyFile, []byte("SELECT 1;"), 0644)
+
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return migrate.New("file://"+tmpDir, config.AppConfig.DBUrl)
+		}
+		
+		assert.NotPanics(t, func() {
+			defaultRunMigrations()
 		})
 	})
 }

@@ -277,6 +277,7 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		assert.NotContains(t, strings.ToUpper(sql), "JOIN")
 	})
+
 }
 
 func TestApplyFilters_Validation(t *testing.T) {

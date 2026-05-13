@@ -14,6 +14,10 @@ func init() {
 	Log, _ = zap.NewDevelopment()
 }
 
+var buildLogger = func(config zap.Config, options ...zap.Option) (*zap.Logger, error) {
+	return config.Build(options...)
+}
+
 func InitLogger(environment string) {
 	var zapConfig zap.Config
 
@@ -26,7 +30,7 @@ func InitLogger(environment string) {
 	}
 
 	var err error
-	Log, err = zapConfig.Build(zap.AddCallerSkip(1))
+	Log, err = buildLogger(zapConfig, zap.AddCallerSkip(1))
 	if err != nil {
 		panic(err)
 	}

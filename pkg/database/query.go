@@ -41,9 +41,6 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 	query := db
 	joinedRelations := make(map[string]bool)
 	likeOperator := "ILIKE"
-	if db.Dialector.Name() == "sqlite" {
-		likeOperator = "LIKE"
-	}
 
 	mainTable := ""
 	if query.Statement.Table != "" {

@@ -1,11 +1,14 @@
 package role
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
 	"backend-go/pkg/database"
+	"gorm.io/gorm"
 )
 
 
@@ -70,6 +73,13 @@ func TestRoleRepository_CreateWithPermissions(t *testing.T) {
 		err := repo.CreateWithPermissions(role, perms)
 		assert.Error(t, err)
 	})
+
+	t.Run("Success - Nil Permissions", func(t *testing.T) {
+		role := &models.Role{Name: "Nil Perms", Description: "D"}
+		err := repo.CreateWithPermissions(role, nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, role.ID)
+	})
 }
 
 func TestRoleRepository_UpdateWithPermissions(t *testing.T) {
@@ -101,4 +111,46 @@ func TestRoleRepository_UpdateWithPermissions(t *testing.T) {
 		err := repo.UpdateWithPermissions(role.ID, role, []models.RoleFeature{})
 		assert.NoError(t, err)
 	})
+
+	t.Run("Success - Nil Permissions", func(t *testing.T) {
+		err := repo.UpdateWithPermissions(role.ID, role, nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - Name Too Long", func(t *testing.T) {
+		invalidRole := &models.Role{Name: string(make([]byte, 300))}
+		err := repo.UpdateWithPermissions(role.ID, invalidRole, nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("Error - ID Too Long", func(t *testing.T) {
+		invalidID := string(make([]byte, 500))
+		err := repo.UpdateWithPermissions(invalidID, role, nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("Error - Delete Violation", func(t *testing.T) {
+		// Add a hook that always returns an error for Delete operations on role_feature
+		database.DB.Callback().Delete().Before("gorm:delete").Register("test:error", func(db *gorm.DB) {
+			if db.Statement.Schema != nil && db.Statement.Schema.Table == "role_feature" {
+				db.AddError(fmt.Errorf("forced delete error"))
+			}
+		})
+		defer database.DB.Callback().Delete().Remove("test:error")
+
+		err := repo.UpdateWithPermissions(role.ID, role, []models.RoleFeature{{IDFeature: "f_err"}})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "forced delete error")
+	})
+}
+
+func TestRoleRepository_ListFeatures(t *testing.T) {
+	repo := NewRoleRepository(database.DB)
+	ctx := context.Background()
+
+	database.DB.Create(&models.Feature{BaseModel: models.BaseModel{ID: "f_list"}, Name: "F List", Description: "D", Active: true})
+
+	features, err := repo.ListFeatures(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, features)
 }

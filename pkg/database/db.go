@@ -23,7 +23,14 @@ var (
 	gormOpen      = gorm.Open
 	dbAutoMigrate = func(db *gorm.DB, dst ...interface{}) error { return db.AutoMigrate(dst...) }
 	runMigrations = defaultRunMigrations
+	migrateNew    = func(sourceURL, databaseURL string) (migrator, error) {
+		return migrate.New(sourceURL, databaseURL)
+	}
 )
+
+type migrator interface {
+	Up() error
+}
 
 func ConnectDB() {
 	var err error
@@ -70,16 +77,16 @@ func ConnectDB() {
 }
 
 func defaultRunMigrations() {
-	m, err := migrate.New(
+	m, err := migrateNew(
 		"file://database/migrations",
 		config.AppConfig.DBUrl,
 	)
 	if err != nil {
-		logger.Log.Sugar().Fatalf("Falha ao preparar migrações: %v", err)
+		logFatalf("Falha ao preparar migrações: %v", err)
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		logger.Log.Sugar().Fatalf("Falha ao executar migrações: %v", err)
+		logFatalf("Falha ao executar migrações: %v", err)
 	}
 
 	logger.Info("Migrações aplicadas com sucesso.")

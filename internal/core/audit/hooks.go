@@ -93,11 +93,12 @@ func auditUpdateHook(db *gorm.DB) {
 }
 
 func auditDeleteHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_logs" {
+	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
 		return
 	}
 
 	recordID := getRecordID(db)
+
 	userID := getUserIDFromContext(db)
 
 	log := models.AuditLog{
