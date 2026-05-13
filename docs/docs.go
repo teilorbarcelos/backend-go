@@ -411,7 +411,15 @@ const docTemplate = `{
         },
         "/product/all": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Retorna todos os produtos (usado para selects/lookups).",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Product"
                 ],
@@ -780,7 +788,15 @@ const docTemplate = `{
         },
         "/role/all": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Retorna todos os papéis (usado para selects/lookups).",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
                 ],
@@ -1185,7 +1201,15 @@ const docTemplate = `{
         },
         "/user/all": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Retorna todos os usuários (usado para selects/lookups).",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "User"
                 ],

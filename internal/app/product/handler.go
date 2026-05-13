@@ -156,6 +156,8 @@ func (h *ProductHandler) List(c *gin.Context) {
 // @Summary Listar Todos os Produtos
 // @Description Retorna todos os produtos (usado para selects/lookups).
 // @Tags Product
+// @Produce json
+// @Security Bearer
 // @Param searchWord query string false "Termo de busca"
 // @Param searchFields query string false "Campos para busca"
 // @Param orderBy query string false "Campo para ordenação"

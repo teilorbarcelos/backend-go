@@ -35,7 +35,7 @@ coverage-html:
 # Geradores
 swagger:
 	@echo "Gerando documentação Swagger..."
-	@$(go env GOPATH)/bin/swag init -g cmd/api/main.go --parseDependency --parseInternal
+	@$(shell go env GOPATH)/bin/swag init -g cmd/api/main.go --parseDependency --parseInternal
 
 generate:
 	go run tools/generator/crud/main.go $(name)

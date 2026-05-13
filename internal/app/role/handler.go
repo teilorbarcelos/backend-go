@@ -176,6 +176,8 @@ func (h *RoleHandler) List(c *gin.Context) {
 // @Summary Listar Todos os Papéis (Roles)
 // @Description Retorna todos os papéis (usado para selects/lookups).
 // @Tags Role
+// @Produce json
+// @Security Bearer
 // @Param searchWord query string false "Termo de busca"
 // @Param searchFields query string false "Campos para busca"
 // @Param orderBy query string false "Campo para ordenação"

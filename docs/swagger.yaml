@@ -763,11 +763,15 @@ paths:
         in: query
         name: orderDirection
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/internal_app_product.ProductListAllResponse'
+      security:
+      - Bearer: []
       summary: Listar Todos os Produtos
       tags:
       - Product
@@ -998,11 +1002,15 @@ paths:
         in: query
         name: orderDirection
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/internal_app_role.RoleListAllResponse'
+      security:
+      - Bearer: []
       summary: Listar Todos os Papéis (Roles)
       tags:
       - Role
@@ -1257,11 +1265,15 @@ paths:
         in: query
         name: orderDirection
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/internal_app_user.UserListAllResponse'
+      security:
+      - Bearer: []
       summary: Listar Todos os Usuários
       tags:
       - User

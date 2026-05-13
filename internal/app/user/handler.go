@@ -159,6 +159,8 @@ func (h *UserHandler) List(c *gin.Context) {
 // @Summary Listar Todos os Usuários
 // @Description Retorna todos os usuários (usado para selects/lookups).
 // @Tags User
+// @Produce json
+// @Security Bearer
 // @Param searchWord query string false "Termo de busca"
 // @Param searchFields query string false "Campos para busca"
 // @Param orderBy query string false "Campo para ordenação"
