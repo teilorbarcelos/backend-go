@@ -4,10 +4,11 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"backend-go/internal/core/handler"
 	"backend-go/internal/core/models"
 	"backend-go/pkg/database"
+
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -24,10 +25,38 @@ type UserHandler struct {
 	Service UserServiceI
 }
 
+type UserListResponse struct {
+	Items []models.User `json:"items"`
+	Total int64         `json:"total"`
+	Page  int           `json:"page"`
+	Limit int           `json:"limit"`
+}
+
+type UserListAllResponse struct {
+	Items []models.User `json:"items"`
+	Total int64         `json:"total"`
+}
+
 func NewUserHandler(service UserServiceI) *UserHandler {
 	return &UserHandler{Service: service}
 }
 
+type UpdateStatusRequest struct {
+	Active bool `json:"active"`
+}
+
+// Create cria um novo usuário
+// @Summary Criar Usuário
+// @Description Cria um novo usuário com os dados fornecidos.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CreateUserDTO true "Dados do usuário"
+// @Success 201 {object} models.User
+// @Failure 400 {object} map[string]string "Dados inválidos"
+// @Failure 500 {object} map[string]string "Erro interno"
+// @Router /user [post]
 func (h *UserHandler) Create(c *gin.Context) {
 	var dto CreateUserDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
@@ -44,6 +73,19 @@ func (h *UserHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, res)
 }
 
+// Update atualiza um usuário existente
+// @Summary Atualizar Usuário
+// @Description Atualiza os dados de um usuário baseado no ID.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID do Usuário"
+// @Param request body UpdateUserDTO true "Campos a serem atualizados"
+// @Success 200 {object} models.User
+// @Failure 400 {object} map[string]string "Dados inválidos"
+// @Failure 500 {object} map[string]string "Erro interno"
+// @Router /user/{id} [put]
 func (h *UserHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	var dto UpdateUserDTO
@@ -61,6 +103,16 @@ func (h *UserHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// GetByID retorna um usuário pelo ID
+// @Summary Obter Usuário
+// @Description Retorna os detalhes de um usuário específico.
+// @Tags User
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID do Usuário"
+// @Success 200 {object} models.User
+// @Failure 404 {object} map[string]string "Usuário não encontrado"
+// @Router /user/{id} [get]
 func (h *UserHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	res, err := h.Service.GetByID(c.Request.Context(), id)
@@ -72,6 +124,20 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// List retorna uma lista paginada de usuários
+// @Summary Listar Usuários
+// @Description Retorna usuários com paginação e filtros.
+// @Tags User
+// @Produce json
+// @Security Bearer
+// @Param page query int false "Número da página (padrão: 1)"
+// @Param size query int false "Itens por página (padrão: 25)"
+// @Param searchWord query string false "Termo de busca"
+// @Param searchFields query string false "Campos para busca (ex: name,email,Role.name)"
+// @Param orderBy query string false "Campo para ordenação"
+// @Param orderDirection query string false "Direção da ordenação (asc/desc)"
+// @Success 200 {object} UserListResponse
+// @Router /user [get]
 func (h *UserHandler) List(c *gin.Context) {
 	params := handler.ParseFilterParams(c)
 
@@ -89,6 +155,18 @@ func (h *UserHandler) List(c *gin.Context) {
 	})
 }
 
+// ListAll retorna todos os usuários sem paginação
+// @Summary Listar Todos os Usuários
+// @Description Retorna todos os usuários (usado para selects/lookups).
+// @Tags User
+// @Produce json
+// @Security Bearer
+// @Param searchWord query string false "Termo de busca"
+// @Param searchFields query string false "Campos para busca"
+// @Param orderBy query string false "Campo para ordenação"
+// @Param orderDirection query string false "Direção da ordenação"
+// @Success 200 {object} UserListAllResponse
+// @Router /user/all [get]
 func (h *UserHandler) ListAll(c *gin.Context) {
 	params := handler.ParseFilterParams(c)
 	params.Limit = 0 // List all
@@ -106,6 +184,16 @@ func (h *UserHandler) ListAll(c *gin.Context) {
 	})
 }
 
+// Delete remove um usuário
+// @Summary Excluir Usuário
+// @Description Remove um usuário logicamente baseado no ID.
+// @Tags User
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID do Usuário"
+// @Success 200 {object} map[string]string "message: usuário excluído com sucesso"
+// @Failure 500 {object} map[string]string "Erro interno"
+// @Router /user/{id} [delete]
 func (h *UserHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
@@ -116,6 +204,18 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "usuário excluído com sucesso"})
 }
 
+// SetStatus ativa ou desativa um usuário
+// @Summary Alterar Status do Usuário
+// @Description Define se um usuário está ativo ou inativo.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID do Usuário"
+// @Param request body UpdateStatusRequest true "Novo status"
+// @Success 200 {object} map[string]string "message: status atualizado com sucesso"
+// @Failure 500 {object} map[string]string "Erro interno"
+// @Router /user/{id}/status [patch]
 func (h *UserHandler) SetStatus(c *gin.Context) {
 	id := c.Param("id")
 	var body struct {

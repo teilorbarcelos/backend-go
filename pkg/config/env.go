@@ -1,29 +1,30 @@
 package config
 
 import (
-	"log"
+	"backend-go/pkg/logger"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Environment     string `mapstructure:"ENVIRONMENT"`
-	Port            string `mapstructure:"PORT"`
-	Host            string `mapstructure:"HOST"`
-	DBUrl           string `mapstructure:"DATABASE_URL"`
-	RedisUrl        string `mapstructure:"REDIS_URL"`
-	RabbitMQUrl     string `mapstructure:"RABBITMQ_URL"`
+	Environment       string `mapstructure:"ENVIRONMENT"`
+	Port              string `mapstructure:"PORT"`
+	Host              string `mapstructure:"HOST"`
+	DBUrl             string `mapstructure:"DATABASE_URL"`
+	RedisUrl          string `mapstructure:"REDIS_URL"`
+	RabbitMQUrl       string `mapstructure:"RABBITMQ_URL"`
 	JWTSecret         string `mapstructure:"JWT_SECRET"`
 	RateLimitMax      int    `mapstructure:"RATE_LIMIT_MAX"`
 	RateLimitWindow   string `mapstructure:"RATE_LIMIT_WINDOW"`
 	FirstUserEmail    string `mapstructure:"FIRST_USER"`
 	FirstUserPassword string `mapstructure:"FIRST_PASSWORD"`
+	LogLevel          string `mapstructure:"LOG_LEVEL"`
 }
 
 var AppConfig Config
 
 var (
-	logFatalf      = log.Fatalf
+	logFatalf      = logger.Fatalf
 	viperUnmarshal = viper.Unmarshal
 )
 
@@ -31,7 +32,6 @@ func LoadConfig() {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
-	// Default values
 	viper.SetDefault("ENVIRONMENT", "development")
 	viper.SetDefault("PORT", "3000")
 	viper.SetDefault("HOST", "0.0.0.0")
@@ -43,7 +43,7 @@ func LoadConfig() {
 	viper.SetDefault("FIRST_PASSWORD", "admin@123")
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)
+		logger.Log.Sugar().Warnf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)
 	}
 
 	if err := viperUnmarshal(&AppConfig); err != nil {

@@ -5,7 +5,8 @@ ENVIRONMENT ?= development
 GO_TEST_FLAGS ?= -v
 
 dev:
-	@if command -v air > /dev/null; then \
+	@export PATH=$$PATH:$$(go env GOPATH)/bin && \
+	if command -v air > /dev/null; then \
 	    air; \
 	elif [ -f $$(go env GOPATH)/bin/air ]; then \
 	    $$(go env GOPATH)/bin/air; \
@@ -32,11 +33,22 @@ coverage-html:
 	@go tool cover -html=coverage.out
 
 # Geradores
+swagger:
+	@echo "Gerando documentação Swagger..."
+	@$(shell go env GOPATH)/bin/swag init -g cmd/api/main.go --parseDependency --parseInternal
+
 generate:
 	go run tools/generator/crud/main.go $(name)
 
 storage-driver:
 	go run tools/generator/storage/main.go $(name)
+
+# Migrations
+migrate-diff:
+	@go run ariga.io/atlas/cmd/atlas@latest migrate diff $(name) --env gorm
+
+migrate-up:
+	@go run ariga.io/atlas/cmd/atlas@latest migrate apply --env gorm --url "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
 # Infraestrutura
 infra-up:

@@ -8,11 +8,11 @@ import (
 )
 
 type RoleService struct {
-	Repo           *RoleRepository
-	SessionManager *session.SessionManager
+	Repo           RoleRepositoryI
+	SessionManager session.SessionStore
 }
 
-func NewRoleService(repo *RoleRepository, sessionMgr *session.SessionManager) *RoleService {
+func NewRoleService(repo RoleRepositoryI, sessionMgr session.SessionStore) *RoleService {
 	return &RoleService{
 		Repo:           repo,
 		SessionManager: sessionMgr,
@@ -20,9 +20,7 @@ func NewRoleService(repo *RoleRepository, sessionMgr *session.SessionManager) *R
 }
 
 func (s *RoleService) ListFeatures(ctx context.Context) ([]models.Feature, error) {
-	var features []models.Feature
-	err := s.Repo.WithContext(ctx).DB.Where("active = ?", true).Find(&features).Error
-	return features, err
+	return s.Repo.WithContext(ctx).ListFeatures(ctx)
 }
 
 type CreateRoleDTO struct {

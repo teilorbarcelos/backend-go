@@ -1,44 +1,64 @@
 {
   "scripts": [
     {
-      "name": "Install Dependencies",
+      "name": "🛠️ Install Dependencies",
       "command": "go mod tidy"
     },
     {
-      "name": "Start Infrastructure",
-      "command": "make infra-up"
-    },
-    {
-      "name": "Stop Infrastructure",
-      "command": "make infra-down"
-    },
-    {
-      "name": "Start Development Server",
+      "name": "🚀 Start Development Server (Air)",
       "command": "make dev"
     },
     {
-      "name": "Run Tests",
+      "name": "🐳 Infrastructure: Start All (Postgres, Redis, RabbitMQ)",
+      "command": "make infra-up"
+    },
+    {
+      "name": "🐳 Infrastructure: Stop Services",
+      "command": "make infra-stop"
+    },
+    {
+      "name": "🐳 Infrastructure: Down (Remove Containers)",
+      "command": "make infra-down"
+    },
+    {
+      "name": "🐳 Infrastructure: Clean (Prune Volumes & Images)",
+      "command": "make infra-clean"
+    },
+    {
+      "name": "🧪 Run All Tests",
       "command": "make test"
     },
     {
-      "name": "Run Coverage",
+      "name": "📊 Code Coverage (Terminal Summary)",
       "command": "make coverage"
     },
     {
-      "name": "Generate Module (make generate name=Entity)",
-      "command": "make generate"
+      "name": "📊 Code Coverage (HTML Report)",
+      "command": "make coverage-html"
     },
     {
-      "name": "Install Storage: AWS S3",
+      "name": "📝 Update Swagger Documentation",
+      "command": "make swagger"
+    },
+    {
+      "name": "🗄️ Database: Run Migrations",
+      "command": "make migrate-up"
+    },
+    {
+      "name": "📦 Storage Driver: Install S3",
       "command": "make storage-driver name=s3"
     },
     {
-      "name": "Install Storage: Google Cloud (GCS)",
+      "name": "📦 Storage Driver: Install GCS",
       "command": "make storage-driver name=gcs"
     },
     {
-      "name": "Install Storage: Azure Blob",
+      "name": "📦 Storage Driver: Install Azure",
       "command": "make storage-driver name=azure"
+    },
+    {
+      "name": "📦 Storage Driver: Install Local",
+      "command": "make storage-driver name=local"
     }
   ],
   "replacements": [

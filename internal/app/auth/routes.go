@@ -1,23 +1,24 @@
 package auth
 
 import (
+	"backend-go/internal/infra/session"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"backend-go/internal/core/repository"
 )
 
-// RegisterRoutes inicializa o módulo e registra as rotas públicas e protegidas
 func RegisterRoutes(publicRG *gin.RouterGroup, protectedRG *gin.RouterGroup, db *gorm.DB) {
-	repo := repository.NewAuthRepository(db)
-	svc := NewAuthService(repo)
-	h := NewAuthHandler(svc)
+	repo := NewRepository(db)
+	sm := session.NewSessionManager()
+	svc := NewService(repo, sm)
+	h := NewHandler(svc)
 
-	// Rotas Públicas
 	authGroup := publicRG.Group("/auth")
 	{
 		authGroup.POST("/login", h.Login)
+		authGroup.POST("/refresh", h.Refresh)
+		authGroup.POST("/password/request", h.ForgotPassword)
+		authGroup.POST("/password/validate", h.ValidateToken)
+		authGroup.POST("/password/change", h.ResetPassword)
 	}
-
-	// Rotas Protegidas
 	protectedRG.GET("/auth/me", h.Me)
 }

@@ -1,17 +1,31 @@
 package role
 
 import (
-	"context"
 	"backend-go/internal/core/models"
 	"backend-go/internal/core/repository"
+	"backend-go/pkg/database"
+	"context"
+
 	"gorm.io/gorm"
 )
+
+type RoleRepositoryI interface {
+	WithContext(ctx context.Context) RoleRepositoryI
+	Create(role *models.Role) error
+	Delete(id string) error
+	Update(id string, updates map[string]interface{}) error
+	CreateWithPermissions(role *models.Role, permissions []models.RoleFeature) error
+	UpdateWithPermissions(id string, role *models.Role, permissions []models.RoleFeature) error
+	FindByID(id string, preloads ...string) (*models.Role, error)
+	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.Role, int64, error)
+	ListFeatures(ctx context.Context) ([]models.Feature, error)
+}
 
 type RoleRepository struct {
 	repository.BaseRepository[models.Role]
 }
 
-func (r *RoleRepository) WithContext(ctx context.Context) *RoleRepository {
+func (r *RoleRepository) WithContext(ctx context.Context) RoleRepositoryI {
 	return &RoleRepository{
 		BaseRepository: *r.BaseRepository.WithContext(ctx),
 	}
@@ -23,6 +37,11 @@ func NewRoleRepository(db *gorm.DB) *RoleRepository {
 	}
 }
 
+func (r *RoleRepository) ListFeatures(ctx context.Context) ([]models.Feature, error) {
+	var features []models.Feature
+	err := r.DB.WithContext(ctx).Where("active = ?", true).Find(&features).Error
+	return features, err
+}
 
 func (r *RoleRepository) CreateWithPermissions(role *models.Role, permissions []models.RoleFeature) error {
 	return r.DB.Transaction(func(tx *gorm.DB) error {
@@ -48,7 +67,6 @@ func (r *RoleRepository) UpdateWithPermissions(id string, role *models.Role, per
 		}
 
 		if permissions != nil {
-			// Delete existing permissions and recreate (like in Node backend)
 			if err := tx.Where("id_role = ?", id).Delete(&models.RoleFeature{}).Error; err != nil {
 				return err
 			}

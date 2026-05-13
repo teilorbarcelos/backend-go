@@ -17,7 +17,6 @@ func TestRegisterRoutes(t *testing.T) {
 	r := gin.New()
 	
 	config.LoadConfig()
-	database.ConnectDB()
 	sm := session.NewSessionManager()
 	
 	rg := r.Group("/v1")

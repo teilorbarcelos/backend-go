@@ -114,6 +114,42 @@ func TestSessionManager_DeleteByPattern_Error(t *testing.T) {
 	})
 }
 
+func TestSessionManager_CreateSession(t *testing.T) {
+	sm := NewSessionManager()
+	ctx := context.Background()
+
+	t.Run("Success", func(t *testing.T) {
+		payload := map[string]interface{}{"key": "value"}
+		err := sm.CreateSession(ctx, "u1", "r1", "hash", payload, 0)
+		assert.NoError(t, err)
+
+		key := "session:role:r1:user:u1:access:hash"
+		exists := cache.RedisClient.Exists(ctx, key).Val()
+		assert.Equal(t, int64(1), exists)
+	})
+
+	t.Run("Marshal Error", func(t *testing.T) {
+		// Functions cannot be marshaled to JSON
+		payload := map[string]interface{}{"key": func() {}}
+		err := sm.CreateSession(ctx, "u2", "r1", "hash", payload, 0)
+		assert.Error(t, err)
+	})
+}
+
+func TestSessionManager_CreateRefreshToken(t *testing.T) {
+	sm := NewSessionManager()
+	ctx := context.Background()
+
+	t.Run("Success", func(t *testing.T) {
+		err := sm.CreateRefreshToken(ctx, "u1", "r1", "hash", 0)
+		assert.NoError(t, err)
+
+		key := "session:role:r1:user:u1:refresh:hash"
+		exists := cache.RedisClient.Exists(ctx, key).Val()
+		assert.Equal(t, int64(1), exists)
+	})
+}
+
 type delErrorHook struct {
 	enabled bool
 }

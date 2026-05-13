@@ -2,13 +2,25 @@ package database
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/pkg/config"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
+
+type mockMigrator struct {
+	upFunc func() error
+}
+
+func (m *mockMigrator) Up() error {
+	return m.upFunc()
+}
 
 func TestConnectDB(t *testing.T) {
 	// Backup original values
@@ -17,6 +29,7 @@ func TestConnectDB(t *testing.T) {
 	origFatalf := logFatalf
 	origGormOpen := gormOpen
 	origAutoMigrate := dbAutoMigrate
+	origRunMigrations := runMigrations
 	origDB := DB
 
 	defer func() {
@@ -25,6 +38,7 @@ func TestConnectDB(t *testing.T) {
 		logFatalf = origFatalf
 		gormOpen = origGormOpen
 		dbAutoMigrate = origAutoMigrate
+		runMigrations = origRunMigrations
 		DB = origDB
 	}()
 
@@ -42,9 +56,10 @@ func TestConnectDB(t *testing.T) {
 		config.AppConfig.Environment = "production"
 		// Mock gormOpen to use sqlite even in "production" mode for the test
 		gormOpen = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
-			return gorm.Open(sqlite.Open("file::memory:?cache=shared"), opts...)
+			return testDB, nil
 		}
 		dbAutoMigrate = func(db *gorm.DB, dst ...interface{}) error { return nil }
+		runMigrations = func() {}
 		logFatalf = origFatalf
 
 		ConnectDB()
@@ -72,7 +87,7 @@ func TestConnectDB(t *testing.T) {
 	t.Run("Failure on AutoMigrate", func(t *testing.T) {
 		config.AppConfig.Environment = "test"
 		gormOpen = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
-			return gorm.Open(sqlite.Open("file::memory:?cache=shared"), opts...)
+			return testDB, nil
 		}
 		dbAutoMigrate = func(db *gorm.DB, dst ...interface{}) error {
 			return errors.New("migration error")
@@ -84,6 +99,86 @@ func TestConnectDB(t *testing.T) {
 
 		assert.PanicsWithValue(t, "fatal: migration", func() {
 			ConnectDB()
+		})
+	})
+}
+
+func TestDefaultRunMigrations(t *testing.T) {
+	origMigrateNew := migrateNew
+	origFatalf := logFatalf
+	defer func() {
+		migrateNew = origMigrateNew
+		logFatalf = origFatalf
+	}()
+
+	t.Run("Success or No Change", func(t *testing.T) {
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return &mockMigrator{
+				upFunc: func() error {
+					return nil // or migrate.ErrNoChange
+				},
+			}, nil
+		}
+		
+		assert.NotPanics(t, func() {
+			defaultRunMigrations()
+		})
+
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return &mockMigrator{
+				upFunc: func() error {
+					return migrate.ErrNoChange
+				},
+			}, nil
+		}
+		
+		assert.NotPanics(t, func() {
+			defaultRunMigrations()
+		})
+	})
+
+	t.Run("Failure on migrate.New", func(t *testing.T) {
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return nil, errors.New("new error")
+		}
+		logFatalf = func(format string, v ...interface{}) {
+			panic("fatal: new")
+		}
+		assert.PanicsWithValue(t, "fatal: new", func() {
+			defaultRunMigrations()
+		})
+	})
+
+	t.Run("Failure on m.Up", func(t *testing.T) {
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return &mockMigrator{
+				upFunc: func() error {
+					return errors.New("up error")
+				},
+			}, nil
+		}
+		
+		logFatalf = func(format string, v ...interface{}) {
+			panic("fatal: up")
+		}
+		
+		assert.PanicsWithValue(t, "fatal: up", func() {
+			defaultRunMigrations()
+		})
+	})
+
+	t.Run("Real Integration test branch coverage", func(t *testing.T) {
+		// Just to be sure we also run the real one if possible
+		tmpDir := t.TempDir()
+		dummyFile := filepath.Join(tmpDir, "000001_init.up.sql")
+		os.WriteFile(dummyFile, []byte("SELECT 1;"), 0644)
+
+		migrateNew = func(sourceURL, databaseURL string) (migrator, error) {
+			return migrate.New("file://"+tmpDir, config.AppConfig.DBUrl)
+		}
+		
+		assert.NotPanics(t, func() {
+			defaultRunMigrations()
 		})
 	})
 }

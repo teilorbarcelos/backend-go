@@ -3,15 +3,19 @@ package handler
 import (
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"backend-go/pkg/database"
+
+	"github.com/gin-gonic/gin"
 )
 
-// ParseFilterParams extrai parâmetros de filtro de uma requisição Gin.
 func ParseFilterParams(c *gin.Context) database.FilterParams {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	sizeStr := c.Query("size")
+	if sizeStr == "" {
+		sizeStr = c.DefaultQuery("limit", "25")
+	}
+	limit, _ := strconv.Atoi(sizeStr)
+
 	params := database.FilterParams{
 		Pagination: database.Pagination{
 			Page:  page,
@@ -26,22 +30,20 @@ func ParseFilterParams(c *gin.Context) database.FilterParams {
 		Filters:      make(map[string]interface{}),
 	}
 
-	// Captura todos os outros query params como filtros de igualdade ou range
 	for key, values := range c.Request.URL.Query() {
-		// Pula parâmetros reservados
 		if key == "page" || key == "limit" || key == "size" || key == "orderBy" || key == "orderDirection" || key == "sort" || key == "searchWord" || key == "searchFields" {
 			continue
 		}
 
 		if len(values) > 0 {
 			val := values[0]
-			
-			// Conversão básica de tipos (booleanos)
-			if val == "true" {
+
+			switch val {
+			case "true":
 				params.Filters[key] = true
-			} else if val == "false" {
+			case "false":
 				params.Filters[key] = false
-			} else {
+			default:
 				params.Filters[key] = val
 			}
 		}

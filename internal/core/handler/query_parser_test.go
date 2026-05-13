@@ -19,8 +19,8 @@ func TestParseFilterParams(t *testing.T) {
 
 		params := ParseFilterParams(c)
 
-		assert.Equal(t, 0, params.Pagination.Page)
-		assert.Equal(t, 10, params.Pagination.Limit)
+		assert.Equal(t, 1, params.Pagination.Page)
+		assert.Equal(t, 25, params.Pagination.Limit)
 		assert.Equal(t, "", params.Order.OrderBy)
 		assert.Equal(t, "", params.Order.OrderDirection)
 		assert.Empty(t, params.Filters)
@@ -37,6 +37,16 @@ func TestParseFilterParams(t *testing.T) {
 		assert.Equal(t, 50, params.Pagination.Limit)
 		assert.Equal(t, "name", params.Order.OrderBy)
 		assert.Equal(t, "desc", params.Order.OrderDirection)
+	})
+
+	t.Run("Size parameter support (Frontend)", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest("GET", "/?size=100", nil)
+
+		params := ParseFilterParams(c)
+
+		assert.Equal(t, 100, params.Pagination.Limit)
 	})
 
 	t.Run("Search and filters", func(t *testing.T) {

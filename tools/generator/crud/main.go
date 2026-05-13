@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"log"
 	"os"
@@ -10,174 +11,81 @@ import (
 	"text/template"
 )
 
+//go:embed templates/*
+var templatesFS embed.FS
+
 type TemplateData struct {
 	Name      string
 	LowerName string
 }
 
-const repositoryTemplate = `package {{.LowerName}}
-
-import (
-	"backend-go/internal/core/models"
-	"backend-go/internal/core/repository"
-	"gorm.io/gorm"
-)
-
-type {{.Name}} struct {
-	models.BaseModel
-	Name string ` + "`gorm:\"type:varchar(255);not null\" json:\"name\"`" + `
-}
-
-type {{.Name}}Repository struct {
-	*repository.BaseRepository[{{.Name}}]
-}
-
-func New{{.Name}}Repository(db *gorm.DB) *{{.Name}}Repository {
-	return &{{.Name}}Repository{
-		BaseRepository: repository.NewBaseRepository[{{.Name}}](db),
-	}
-}
-`
-
-const serviceTemplate = `package {{.LowerName}}
-
-import (
-	"context"
-	"backend-go/pkg/database"
-)
-
-type {{.Name}}Service struct {
-	Repo *{{.Name}}Repository
-}
-
-func New{{.Name}}Service(repo *{{.Name}}Repository) *{{.Name}}Service {
-	return &{{.Name}}Service{Repo: repo}
-}
-
-func (s *{{.Name}}Service) Create(ctx context.Context, entity *{{.Name}}) error {
-	return s.Repo.WithContext(ctx).Create(entity)
-}
-
-func (s *{{.Name}}Service) List(ctx context.Context, params database.FilterParams) ([]{{.Name}}, int64, error) {
-	allowed := map[string]bool{
-		"name": true,
-	}
-	return s.Repo.WithContext(ctx).SearchPaginated(params, allowed)
-}
-
-func (s *{{.Name}}Service) GetByID(ctx context.Context, id string) (*{{.Name}}, error) {
-	return s.Repo.WithContext(ctx).FindByID(id)
-}
-
-func (s *{{.Name}}Service) Update(ctx context.Context, id string, updates map[string]interface{}) error {
-	return s.Repo.WithContext(ctx).Update(id, updates)
-}
-
-func (s *{{.Name}}Service) Delete(ctx context.Context, id string) error {
-	return s.Repo.WithContext(ctx).Delete(id)
-}
-`
-
-const handlerTemplate = `package {{.LowerName}}
-
-import (
-	"net/http"
-	"github.com/gin-gonic/gin"
-	"backend-go/internal/core/handler"
-)
-
-type {{.Name}}Handler struct {
-	Service *{{.Name}}Service
-}
-
-func New{{.Name}}Handler(service *{{.Name}}Service) *{{.Name}}Handler {
-	return &{{.Name}}Handler{Service: service}
-}
-
-func (h *{{.Name}}Handler) Create(c *gin.Context) {
-	var entity {{.Name}}
-	if err := c.ShouldBindJSON(&entity); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := h.Service.Create(c.Request.Context(), &entity); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, entity)
-}
-
-func (h *{{.Name}}Handler) List(c *gin.Context) {
-	params := handler.ParseFilterParams(c)
-	
-	items, total, err := h.Service.List(c.Request.Context(), params)
+func writeTemplate(outputPath, templateName string, data TemplateData) {
+	tmplContent, err := templatesFS.ReadFile(filepath.Join("templates", templateName))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		log.Fatalf("Erro ao ler template %s: %v", templateName, err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"items": items,
-		"total": total,
-		"page":  params.Page,
-		"limit": params.Limit,
-	})
-}
-
-func (h *{{.Name}}Handler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	entity, err := h.Service.GetByID(c.Request.Context(), id)
+	t, err := template.New(templateName).Parse(string(tmplContent))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Não encontrado"})
-		return
+		log.Fatalf("Erro ao parsear template %s: %v", templateName, err)
 	}
 
-	c.JSON(http.StatusOK, entity)
-}
-
-func (h *{{.Name}}Handler) Update(c *gin.Context) {
-	id := c.Param("id")
-	var updates map[string]interface{}
-	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := h.Service.Update(c.Request.Context(), id, updates); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-
-func (h *{{.Name}}Handler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-`
-
-func writeTemplate(path, tmpl string, data TemplateData) {
-	t, err := template.New("tmpl").Parse(tmpl)
-	if err != nil {
-		log.Fatalf("Erro ao parsear template: %v", err)
-	}
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, data); err != nil {
-		log.Fatalf("Erro ao executar template: %v", err)
+		log.Fatalf("Erro ao executar template %s: %v", templateName, err)
 	}
 
-	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		log.Fatalf("Erro ao escrever arquivo %s: %v", path, err)
+	if err := os.WriteFile(outputPath, buf.Bytes(), 0644); err != nil {
+		log.Fatalf("Erro ao escrever arquivo %s: %v", outputPath, err)
 	}
-	fmt.Printf("Criado: %s\n", path)
+	fmt.Printf("Criado: %s\n", outputPath)
+}
+
+func automateRegistration(data TemplateData) {
+	// 1. Registrar no AutoMigrate em pkg/database/db.go
+	dbPath := filepath.Join("pkg", "database", "db.go")
+	dbContent, err := os.ReadFile(dbPath)
+	if err == nil {
+		content := string(dbContent)
+		if !strings.Contains(content, "&models."+data.Name+"{}") {
+			newModel := fmt.Sprintf("&models.Product{},\n\t\t&models.%s{},", data.Name)
+			content = strings.Replace(content, "&models.Product{},", newModel, 1)
+			os.WriteFile(dbPath, []byte(content), 0644)
+			fmt.Println("Registrado AutoMigrate em pkg/database/db.go")
+		}
+	}
+
+	// 1b. Registrar no AutoMigrate em pkg/testutil/containers.go
+	testUtilPath := filepath.Join("pkg", "testutil", "containers.go")
+	testUtilContent, err := os.ReadFile(testUtilPath)
+	if err == nil {
+		content := string(testUtilContent)
+		if !strings.Contains(content, "&models."+data.Name+"{}") {
+			newModel := fmt.Sprintf("&models.Product{},\n\t\t&models.%s{},", data.Name)
+			content = strings.Replace(content, "&models.Product{},", newModel, 1)
+			os.WriteFile(testUtilPath, []byte(content), 0644)
+			fmt.Println("Registrado AutoMigrate em pkg/testutil/containers.go")
+		}
+	}
+
+	// 2. Registrar Rotas em cmd/api/main.go
+	mainPath := filepath.Join("cmd", "api", "main.go")
+	mainContent, err := os.ReadFile(mainPath)
+	if err == nil {
+		content := string(mainContent)
+		// Adicionar Import
+		if !strings.Contains(content, "backend-go/internal/app/"+data.LowerName) {
+			newImport := fmt.Sprintf("\"backend-go/internal/app/product\"\n\t\"backend-go/internal/app/%s\"", data.LowerName)
+			content = strings.Replace(content, "\"backend-go/internal/app/product\"", newImport, 1)
+		}
+		// Adicionar Rota
+		if !strings.Contains(content, data.LowerName+".RegisterRoutes") {
+			newRoute := fmt.Sprintf("product.RegisterRoutes(protected, database.DB)\n\t\t%s.RegisterRoutes(protected, database.DB)", data.LowerName)
+			content = strings.Replace(content, "product.RegisterRoutes(protected, database.DB)", newRoute, 1)
+		}
+		os.WriteFile(mainPath, []byte(content), 0644)
+		fmt.Println("Registrado Rotas em cmd/api/main.go")
+	}
 }
 
 func main() {
@@ -186,11 +94,22 @@ func main() {
 	}
 
 	name := os.Args[1]
+	// Garantir que Name comece com letra maiúscula (PascalCase) para tipos Go
+	if len(name) > 0 {
+		name = strings.ToUpper(name[:1]) + name[1:]
+	}
 	lowerName := strings.ToLower(name)
-	
-	dir := filepath.Join("internal", "app", lowerName)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Fatalf("Erro ao criar diretório %s: %v", dir, err)
+
+	// Diretório do módulo
+	appDir := filepath.Join("internal", "app", lowerName)
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		log.Fatalf("Erro ao criar diretório %s: %v", appDir, err)
+	}
+
+	// Diretório do modelo
+	modelDir := filepath.Join("internal", "core", "models")
+	if err := os.MkdirAll(modelDir, 0755); err != nil {
+		log.Fatalf("Erro ao criar diretório %s: %v", modelDir, err)
 	}
 
 	data := TemplateData{
@@ -198,9 +117,21 @@ func main() {
 		LowerName: lowerName,
 	}
 
-	writeTemplate(filepath.Join(dir, "repository.go"), repositoryTemplate, data)
-	writeTemplate(filepath.Join(dir, "service.go"), serviceTemplate, data)
-	writeTemplate(filepath.Join(dir, "handler.go"), handlerTemplate, data)
+	// Arquivos do módulo
+	writeTemplate(filepath.Join(appDir, "repository.go"), "repository.tpl", data)
+	writeTemplate(filepath.Join(appDir, "service.go"), "service.tpl", data)
+	writeTemplate(filepath.Join(appDir, "handler.go"), "handler.tpl", data)
+	writeTemplate(filepath.Join(appDir, "routes.go"), "routes.tpl", data)
+	writeTemplate(filepath.Join(appDir, "repository_test.go"), "repository_test.tpl", data)
+	writeTemplate(filepath.Join(appDir, "service_test.go"), "service_test.tpl", data)
+	writeTemplate(filepath.Join(appDir, "handler_test.go"), "handler_test.tpl", data)
+	writeTemplate(filepath.Join(appDir, "main_test.go"), "main_test.tpl", data)
 
-	fmt.Printf("\nMódulo '%s' gerado com sucesso em '%s'.\n", name, dir)
+	// Arquivo do modelo
+	writeTemplate(filepath.Join(modelDir, lowerName+".go"), "model.tpl", data)
+
+	// Automação de registros
+	automateRegistration(data)
+
+	fmt.Printf("\nMódulo '%s' gerado e registrado com sucesso!\n", name)
 }

@@ -6,6 +6,7 @@ import (
 	"backend-go/internal/core/models"
 	"backend-go/pkg/config"
 	"backend-go/pkg/security"
+
 	"gorm.io/gorm"
 )
 
@@ -111,7 +112,6 @@ func RunSeed(db *gorm.DB) {
 		}
 	}
 
-	// Criar Primeiro Usuário (Administrador)
 	var adminCount int64
 	db.Model(&models.User{}).Where("email = ?", config.AppConfig.FirstUserEmail).Count(&adminCount)
 
@@ -123,8 +123,8 @@ func RunSeed(db *gorm.DB) {
 			log.Printf("Erro ao hashear senha do administrador: %v", err)
 		} else {
 			adminUser := models.User{
-				Name:  "Administrador",
-				Email: config.AppConfig.FirstUserEmail,
+				Name:   "Administrador",
+				Email:  config.AppConfig.FirstUserEmail,
 				Active: true,
 				IDRole: "administrator",
 				Auth: &models.Auth{

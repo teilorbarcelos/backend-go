@@ -74,10 +74,18 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	ctx := context.Background()
 
+	// Create a role first
+	role := models.Role{
+		Name:        "Test Role",
+		Description: "Description",
+	}
+	database.DB.Create(&role)
+
 	// Create a user
 	user := models.User{
-		Name:  "FindByEmail User",
-		Email: "findbyemail@test.com",
+		Name:   "FindByEmail User",
+		Email:  "findbyemail@test.com",
+		IDRole: role.ID,
 	}
 	database.DB.Create(&user)
 

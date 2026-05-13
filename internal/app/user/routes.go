@@ -7,7 +7,7 @@ import (
 	"backend-go/internal/middleware"
 )
 
-func RegisterRoutes(rg *gin.RouterGroup, db *gorm.DB, sm *session.SessionManager) {
+func RegisterRoutes(rg *gin.RouterGroup, db *gorm.DB, sm session.SessionStore) {
 	repo := NewUserRepository(db)
 	svc := NewUserService(repo, sm)
 	h := NewUserHandler(svc)

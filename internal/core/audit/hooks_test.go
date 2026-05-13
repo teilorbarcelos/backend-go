@@ -2,47 +2,16 @@ package audit
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
-	"backend-go/pkg/config"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 type AuditTestModel struct {
 	models.BaseModel
 	Name string `gorm:"type:varchar(255)"`
-}
-
-var testDB *gorm.DB
-
-func TestMain(m *testing.M) {
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	
-	// Initialize local DB for testing
-	var err error
-	testDB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-		},
-	})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	// Register hooks manually for the test DB
-	RegisterAuditHooks(testDB)
-	
-	// Create tables for testing
-	testDB.AutoMigrate(&models.AuditLog{}, &AuditTestModel{})
-	
-	code := m.Run()
-	os.Exit(code)
 }
 
 func TestAuditHooks(t *testing.T) {
@@ -197,6 +166,32 @@ func TestAuditHooks(t *testing.T) {
 		uid = getUserIDFromContext(dbWrongCtx)
 		assert.Nil(t, uid)
 	})
+
+	t.Run("getRecordID Map missing PK", func(t *testing.T) {
+		dbSession := db.Session(&gorm.Session{})
+		dbSession.Statement.Dest = map[string]interface{}{"Name": "No ID"}
+		// Since we need a schema with primary fields, we'll use AuditTestModel's schema
+		stmt := &gorm.Statement{DB: db, Dest: map[string]interface{}{"Name": "No ID"}}
+		stmt.Parse(&AuditTestModel{})
+		dbSession.Statement.Schema = stmt.Schema
+		
+		id := getRecordID(dbSession)
+		assert.Equal(t, "unknown", id)
+	})
+
+	t.Run("auditUpdateHook with Map", func(t *testing.T) {
+		model := &AuditTestModel{Name: "Map Update Test"}
+		db.Create(model)
+		
+		// Update via map to trigger the map branch in auditUpdateHook
+		err := db.Model(&AuditTestModel{}).Where("id = ?", model.ID).Updates(map[string]interface{}{"id": model.ID, "name": "Map Updated"}).Error
+		assert.NoError(t, err)
+		
+		var log models.AuditLog
+		err = db.Where("record_id = ? AND action = ?", model.ID, "UPDATE").Order("created_at desc").First(&log).Error
+		assert.NoError(t, err)
+		assert.Contains(t, log.NewValues, "Map Updated")
+	})
 }
 
 func TestAuditHooks_ErrorPaths(t *testing.T) {
@@ -223,12 +218,14 @@ func TestAuditHooks_ErrorPaths(t *testing.T) {
 	})
 
 	t.Run("auditUpdateHook with unknown recordID", func(t *testing.T) {
-		type NoPKModel struct {
-			Name string `gorm:"-;"`
-		}
-		// We don't even need to migrate, just setup the statement
-		model := &NoPKModel{Name: "No PK"}
-		dbSession := db.Model(model).Session(&gorm.Session{})
+		dbSession := db.Session(&gorm.Session{})
+		dbSession.Statement.Dest = nil
+		dbSession.Statement.Table = "some_table"
+		
+		// Manually set schema to pass the initial check
+		stmt := &gorm.Statement{DB: db}
+		stmt.Parse(&AuditTestModel{})
+		dbSession.Statement.Schema = stmt.Schema
 		
 		// This should result in "unknown" recordID and return early at line 48
 		auditUpdateHook(dbSession)

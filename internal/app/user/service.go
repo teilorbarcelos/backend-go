@@ -24,10 +24,10 @@ type UserRepositoryI interface {
 
 type UserService struct {
 	Repo           UserRepositoryI
-	SessionManager *session.SessionManager
+	SessionManager session.SessionStore
 }
 
-func NewUserService(repo UserRepositoryI, sessionMgr *session.SessionManager) *UserService {
+func NewUserService(repo UserRepositoryI, sessionMgr session.SessionStore) *UserService {
 	return &UserService{
 		Repo:           repo,
 		SessionManager: sessionMgr,
@@ -80,12 +80,10 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 
 	updates := make(map[string]interface{})
 
-	// Proteção: Não permite desativar o primeiro usuário
 	if user.Email == config.AppConfig.FirstUserEmail {
 		if dto.Active != nil && !*dto.Active {
 			return nil, errors.New("o usuário administrador inicial não pode ser desativado")
 		}
-		// Não permite alterar o email do primeiro usuário para não perder a referência
 		if dto.Email != "" && dto.Email != user.Email {
 			return nil, errors.New("o email do usuário administrador inicial não pode ser alterado")
 		}
@@ -120,14 +118,12 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 		}
 	}
 
-	// Invalida sessões se houver qualquer alteração
-	s.SessionManager.InvalidateUserSessions(id, user.IDRole)
+	s.SessionManager.InvalidateUserSessions(id, "")
 
 	return repo.FindByID(id, "Auth", "Role")
 }
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
-	// Definimos os campos permitidos para filtro/busca no User seguindo o padrão Node.js
 	filterable := map[string]database.FilterConfig{
 		"name":      {Operator: "contains"},
 		"email":     {Operator: "equals"},
@@ -141,7 +137,7 @@ func (s *UserService) List(ctx context.Context, params database.FilterParams) ([
 		{Key: "Role.name", Relation: "nested"},
 	}
 
-	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable, "Role")
+	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable)
 }
 
 func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {
@@ -159,7 +155,7 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateUserSessions(id, user.IDRole)
+	return s.SessionManager.InvalidateUserSessions(id, "")
 }
 
 func (s *UserService) SetStatus(ctx context.Context, id string, active bool) error {
@@ -173,5 +169,5 @@ func (s *UserService) SetStatus(ctx context.Context, id string, active bool) err
 	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateUserSessions(id, user.IDRole)
+	return s.SessionManager.InvalidateUserSessions(id, "")
 }

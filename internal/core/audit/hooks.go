@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"backend-go/internal/core/models"
+
 	"gorm.io/gorm"
 )
 
-// RegisterAuditHooks adiciona callbacks globais no GORM para capturar todas as alterações.
 func RegisterAuditHooks(db *gorm.DB) {
 	db.Callback().Create().After("gorm:create").Register("audit:create", auditCreateHook)
 	db.Callback().Update().Before("gorm:update").Register("audit:update", auditUpdateHook)
@@ -48,18 +48,15 @@ func auditUpdateHook(db *gorm.DB) {
 		return
 	}
 
-	// Busca valores antigos usando as chaves primárias do GORM
 	var oldValues map[string]interface{}
 	query := db.Session(&gorm.Session{NewDB: true}).Table(db.Statement.Schema.Table)
 
-	// Aplica as chaves primárias na query
 	destValue := reflect.Indirect(reflect.ValueOf(db.Statement.Dest))
 	for _, field := range db.Statement.Schema.PrimaryFields {
 		var val interface{}
 		if destValue.Kind() == reflect.Struct {
 			val, _ = field.ValueOf(db.Statement.Context, reflect.ValueOf(db.Statement.Dest))
 		} else if destValue.Kind() == reflect.Map {
-			// Tenta pegar do mapa
 			mapVal := destValue.MapIndex(reflect.ValueOf(field.Name))
 			if !mapVal.IsValid() {
 				mapVal = destValue.MapIndex(reflect.ValueOf(field.DBName))
@@ -75,7 +72,6 @@ func auditUpdateHook(db *gorm.DB) {
 	}
 
 	if err := query.Take(&oldValues).Error; err != nil {
-		// Se não conseguir pegar o antigo, apenas ignora
 		oldValues = make(map[string]interface{})
 	}
 
@@ -93,16 +89,16 @@ func auditUpdateHook(db *gorm.DB) {
 		UserID:    userID,
 	}
 
-	// Salva em uma nova sessão para não interferir na transação atual caso ocorra erro
 	db.Session(&gorm.Session{NewDB: true}).Create(&log)
 }
 
 func auditDeleteHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_logs" {
+	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
 		return
 	}
 
 	recordID := getRecordID(db)
+
 	userID := getUserIDFromContext(db)
 
 	log := models.AuditLog{
@@ -157,7 +153,6 @@ func getRecordID(db *gorm.DB) string {
 }
 
 func getUserIDFromContext(db *gorm.DB) *string {
-	// Pega o UserID do contexto do gin repassado para o GORM (via db.WithContext)
 	if ctxVal := db.Statement.Context.Value("userID"); ctxVal != nil {
 		if id, ok := ctxVal.(string); ok && id != "" {
 			return &id

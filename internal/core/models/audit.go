@@ -23,6 +23,12 @@ func (a *AuditLog) BeforeCreate(tx *gorm.DB) (err error) {
 	if a.ID == "" {
 		a.ID = uuid.New().String()
 	}
+	if a.OldValues == "" {
+		a.OldValues = "{}"
+	}
+	if a.NewValues == "" {
+		a.NewValues = "{}"
+	}
 	return
 }
 

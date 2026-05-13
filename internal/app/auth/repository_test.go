@@ -1,33 +1,22 @@
-package repository
+package auth
 
 import (
-	"os"
+	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
-	"backend-go/pkg/config"
 	"backend-go/pkg/database"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
-	// Setup test environment
-	os.Setenv("ENVIRONMENT", "test")
-	config.LoadConfig()
-	database.ConnectDB()
-
-	code := m.Run()
-	os.Exit(code)
-}
-
 func TestNewAuthRepository(t *testing.T) {
-	repo := NewAuthRepository(database.DB)
+	repo := NewRepository(database.DB)
 	assert.NotNil(t, repo)
-	assert.Equal(t, database.DB, repo.DB)
 }
 
 func TestAuthRepository_FindByEmail(t *testing.T) {
-	repo := NewAuthRepository(database.DB)
+	repo := NewRepository(database.DB)
+	ctx := context.Background()
 
 	// Setup: Create Role, Auth and User
 	feature := models.Feature{
@@ -59,11 +48,11 @@ func TestAuthRepository_FindByEmail(t *testing.T) {
 	database.DB.Create(&user)
 
 	t.Run("Success", func(t *testing.T) {
-		found, err := repo.FindByEmail(user.Email)
+		found, err := repo.FindByEmail(ctx, user.Email)
 		assert.NoError(t, err)
 		assert.NotNil(t, found)
 		assert.Equal(t, user.ID, found.ID)
-		
+
 		// Verify preloads
 		assert.NotNil(t, found.Auth)
 		assert.Equal(t, *auth.Password, *found.Auth.Password)
@@ -73,8 +62,30 @@ func TestAuthRepository_FindByEmail(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		found, err := repo.FindByEmail("nonexistent@example.com")
+		found, err := repo.FindByEmail(ctx, "nonexistent@example.com")
 		assert.Error(t, err)
 		assert.Nil(t, found)
+	})
+}
+
+func TestAuthRepository_UpdateAuth(t *testing.T) {
+	repo := NewRepository(database.DB)
+	ctx := context.Background()
+
+	auth := models.Auth{}
+	database.DB.Create(&auth)
+
+	t.Run("Success", func(t *testing.T) {
+		token := "654321"
+		updates := map[string]interface{}{
+			"request_password_token": token,
+		}
+
+		err := repo.UpdateAuth(ctx, auth.ID, updates)
+		assert.NoError(t, err)
+
+		var updated models.Auth
+		database.DB.First(&updated, "id = ?", auth.ID)
+		assert.Equal(t, token, *updated.RequestPasswordToken)
 	})
 }
