@@ -47,10 +47,12 @@ func (s *ProductService) Update(ctx context.Context, id string, updates map[stri
 
 func (s *ProductService) List(ctx context.Context, params database.FilterParams) ([]models.Product, int64, error) {
 	filterable := map[string]database.FilterConfig{
-		"name":     {Operator: "contains"},
-		"sku":      {Operator: "equals"},
-		"category": {Operator: "equals"},
-		"active":   {Type: "boolean"},
+		"name":       {Operator: "contains"},
+		"sku":        {Operator: "equals"},
+		"category":   {Operator: "equals"},
+		"active":     {Type: "boolean"},
+		"created_at": {Type: "date"},
+		"updated_at": {Type: "date"},
 	}
 
 	searchable := []database.SearchConfig{

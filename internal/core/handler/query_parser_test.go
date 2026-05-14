@@ -78,4 +78,19 @@ func TestParseFilterParams(t *testing.T) {
 		assert.NotContains(t, params.Filters, "limit")
 		assert.NotContains(t, params.Filters, "orderBy")
 	})
+
+	t.Run("camelCase date keys normalized to snake_case", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest("GET", "/?createdAt=2026-05-14&updatedAt=2026-06-01&createdAt_start=2026-01-01&updatedAt_end=2026-12-31", nil)
+
+		params := ParseFilterParams(c)
+
+		assert.Equal(t, "2026-05-14", params.Filters["created_at"])
+		assert.Equal(t, "2026-06-01", params.Filters["updated_at"])
+		assert.Equal(t, "2026-01-01", params.Filters["created_at_start"])
+		assert.Equal(t, "2026-12-31", params.Filters["updated_at_end"])
+		assert.NotContains(t, params.Filters, "createdAt")
+		assert.NotContains(t, params.Filters, "updatedAt")
+	})
 }

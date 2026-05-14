@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 
 	"backend-go/pkg/database"
 
@@ -38,13 +39,22 @@ func ParseFilterParams(c *gin.Context) database.FilterParams {
 		if len(values) > 0 {
 			val := values[0]
 
+			normalizedKey := key
+			for _, prefix := range []string{"createdAt", "updatedAt"} {
+				if normalizedKey == prefix || normalizedKey == prefix+"_start" || normalizedKey == prefix+"_end" {
+					snake := prefix[:7] + "_" + strings.ToLower(prefix[7:])
+					normalizedKey = strings.Replace(normalizedKey, prefix, snake, 1)
+					break
+				}
+			}
+
 			switch val {
 			case "true":
-				params.Filters[key] = true
+				params.Filters[normalizedKey] = true
 			case "false":
-				params.Filters[key] = false
+				params.Filters[normalizedKey] = false
 			default:
-				params.Filters[key] = val
+				params.Filters[normalizedKey] = val
 			}
 		}
 	}

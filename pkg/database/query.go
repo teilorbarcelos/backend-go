@@ -73,7 +73,22 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 
 		config, ok := filterable[fieldKey]
 		if !ok {
-			return nil, fmt.Errorf("filtro '%s' não está disponível", fieldKey)
+			if fieldKey == "createdAt" {
+				config, ok = filterable["created_at"]
+			} else if fieldKey == "updatedAt" {
+				config, ok = filterable["updated_at"]
+			}
+			if !ok {
+				return nil, fmt.Errorf("filtro '%s' não está disponível", fieldKey)
+			}
+			if config.TargetKey == "" {
+				if fieldKey == "createdAt" {
+					config.TargetKey = "created_at"
+				}
+				if fieldKey == "updatedAt" {
+					config.TargetKey = "updated_at"
+				}
+			}
 		}
 
 		targetKey := config.TargetKey
@@ -95,6 +110,22 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 		quotedKey := targetKey
 		if query.Statement.Schema != nil {
 			quotedKey = query.Statement.Quote(targetKey)
+		}
+
+		if config.Type == "date" {
+			dateStr, ok := value.(string)
+			if ok && len(dateStr) == 10 {
+				if operator == "" {
+					start := dateStr + " 00:00:00"
+					end := dateStr + " 23:59:59.999"
+					query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", quotedKey, quotedKey), start, end)
+					continue
+				} else if operator == ">=" {
+					value = dateStr + " 00:00:00.000"
+				} else if operator == "<=" {
+					value = dateStr + " 23:59:59.999"
+				}
+			}
 		}
 
 		if operator == "" {
