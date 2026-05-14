@@ -326,3 +326,95 @@ func TestApplyFilters_Validation(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestApplyFilters_Date(t *testing.T) {
+	db := testDB.Session(&gorm.Session{DryRun: true})
+
+	t.Run("Date Filter _end includes full day", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"created_at_end": "2026-05-29",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+
+		assert.Contains(t, sql, "2026-05-29 23:59:59.999")
+	})
+
+	t.Run("Date Filter _start includes start of day", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"created_at_start": "2026-05-01",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+
+		assert.Contains(t, sql, "2026-05-01 00:00:00.000")
+	})
+
+	t.Run("Date Filter exact date expands to full day range", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"created_at": "2026-05-14",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+
+		assert.Contains(t, sql, ">= '2026-05-14 00:00:00'")
+		assert.Contains(t, sql, "<= '2026-05-14 23:59:59.999'")
+	})
+
+	t.Run("Date Filter fallback for createdAt camelCase", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"createdAt": "2026-05-14",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+
+		assert.Contains(t, sql, ">= '2026-05-14 00:00:00'")
+		assert.Contains(t, sql, "<= '2026-05-14 23:59:59.999'")
+	})
+
+	t.Run("Date Filter fallback for updatedAt camelCase", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"updatedAt": "2026-06-01",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"updated_at": {Type: "date"},
+		}
+
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+
+		assert.Contains(t, sql, ">= '2026-06-01 00:00:00'")
+		assert.Contains(t, sql, "<= '2026-06-01 23:59:59.999'")
+	})
+}

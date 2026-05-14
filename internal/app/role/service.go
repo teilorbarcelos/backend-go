@@ -1,10 +1,10 @@
 package role
 
 import (
-	"context"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/database"
+	"context"
 )
 
 type RoleService struct {
@@ -24,8 +24,8 @@ func (s *RoleService) ListFeatures(ctx context.Context) ([]models.Feature, error
 }
 
 type CreateRoleDTO struct {
-	Name        string                  `json:"name" binding:"required"`
-	Description string                  `json:"description" binding:"required"`
+	Name        string               `json:"name" binding:"required"`
+	Description string               `json:"description" binding:"required"`
 	Permissions []models.RoleFeature `json:"permissions"`
 }
 
@@ -35,7 +35,7 @@ func (s *RoleService) Create(ctx context.Context, dto CreateRoleDTO) (*models.Ro
 		Description: dto.Description,
 		Active:      true,
 	}
-	
+
 	err := s.Repo.WithContext(ctx).CreateWithPermissions(role, dto.Permissions)
 	return role, err
 }
@@ -54,8 +54,10 @@ func (s *RoleService) Update(ctx context.Context, id string, dto CreateRoleDTO) 
 
 func (s *RoleService) List(ctx context.Context, params database.FilterParams) ([]models.Role, int64, error) {
 	filterable := map[string]database.FilterConfig{
-		"name":   {Operator: "contains"},
-		"active": {Type: "boolean"},
+		"name":       {Operator: "contains"},
+		"active":     {Type: "boolean"},
+		"created_at": {Type: "date"},
+		"updated_at": {Type: "date"},
 	}
 
 	searchable := []database.SearchConfig{

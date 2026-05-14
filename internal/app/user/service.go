@@ -125,10 +125,12 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
 	filterable := map[string]database.FilterConfig{
-		"name":      {Operator: "contains"},
-		"email":     {Operator: "equals"},
-		"active":    {Type: "boolean"},
-		"Role.name": {Relation: "nested"},
+		"name":       {Operator: "contains"},
+		"email":      {Operator: "equals"},
+		"active":     {Type: "boolean"},
+		"created_at": {Type: "date"},
+		"updated_at": {Type: "date"},
+		"Role.name":  {Relation: "nested"},
 	}
 
 	searchable := []database.SearchConfig{
