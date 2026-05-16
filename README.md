@@ -18,6 +18,7 @@ Este projeto não é apenas uma estrutura de pastas, mas um ecossistema completo
 *   **🧪 Testes de Alta Fidelidade:** 100% de cobertura de código garantida por **Testcontainers** (Postgres e Redis reais nos testes).
 *   **📊 Observabilidade Nativa:** Middleware de métricas Prometheus e Logging estruturado com Zap.
 *   **📂 Gestão de Media Modular:** Factory pattern para múltiplos storages (S3, Local, etc.) com geração automática de infraestrutura.
+*   **📄 Geração de PDF (Streaming Bypass):** Integração eficiente com microserviço de PDF que realiza o bypass da resposta diretamente para o cliente, sem sobrecarga de memória.
 
 ---
 
@@ -31,6 +32,7 @@ Este projeto não é apenas uma estrutura de pastas, mas um ecossistema completo
 *   **Documentação:** Swagger / OpenAPI
 *   **Infra Dev:** Docker & Docker Compose
 *   **Live Reload:** Air
+*   **Geração de PDF:** React-PDF Service (Streaming Bypass)
 
 ---
 
@@ -107,6 +109,16 @@ A segurança é tratada como prioridade, com múltiplas camadas de proteção:
     *   Middleware dedicado para checagem de permissões por endpoint.
 *   **Gestão de Sessões:** Invalidação de tokens em tempo real via Redis (Logout global, troca de senha ou alteração de permissões).
 *   **Auditoria Automática:** Registro de quem, quando e o que foi alterado em qualquer tabela do banco de dados através de GORM Hooks.
+
+---
+
+## 📄 Geração de PDF (Streaming Bypass)
+
+O sistema possui uma integração otimizada para geração de documentos PDF utilizando um microserviço externo baseado em `react-pdf`.
+
+*   **Eficiência de Memória:** O backend Go atua como um proxy transparente. Utiliza `io.Copy` para repassar o stream de dados do microserviço diretamente para o frontend, garantindo que arquivos grandes não consumam memória RAM do servidor.
+*   **Debug & Test:** Endpoints prontos para validação em `/v1/debug/pdf` (GET para teste rápido e POST para payloads customizados).
+*   **Padrão Enterprise:** Seguindo o mesmo padrão de integração streaming presente no boilerplate original em Java Quarkus.
 
 ## 🛠️ Utilizando os Geradores
 

@@ -19,6 +19,7 @@ type Config struct {
 	FirstUserEmail    string `mapstructure:"FIRST_USER"`
 	FirstUserPassword string `mapstructure:"FIRST_PASSWORD"`
 	LogLevel          string `mapstructure:"LOG_LEVEL"`
+	PdfServiceUrl     string `mapstructure:"PDF_SERVICE_URL"`
 }
 
 var AppConfig Config
@@ -41,6 +42,7 @@ func LoadConfig() {
 	viper.SetDefault("REDIS_URL", "redis://localhost:6379")
 	viper.SetDefault("FIRST_USER", "admin@email.com")
 	viper.SetDefault("FIRST_PASSWORD", "admin@123")
+	viper.SetDefault("PDF_SERVICE_URL", "http://localhost:8889")
 
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Log.Sugar().Warnf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)
