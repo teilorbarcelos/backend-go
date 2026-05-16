@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"backend-go/internal/app/auth"
+	"backend-go/internal/app/debug"
 	"backend-go/internal/app/product"
 	"backend-go/internal/app/role"
 	"backend-go/internal/app/user"
@@ -88,6 +89,7 @@ func main() {
 		user.RegisterRoutes(protected, database.DB, sessionMgr)
 		role.RegisterRoutes(protected, database.DB, sessionMgr)
 		product.RegisterRoutes(protected, database.DB)
+		debug.RegisterRoutes(v1)
 	}
 
 	addr := config.AppConfig.Host + ":" + config.AppConfig.Port
