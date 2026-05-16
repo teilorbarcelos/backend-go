@@ -1,4 +1,4 @@
-.PHONY: dev test coverage coverage-html generate storage-driver infra-up infra-down infra-stop infra-clean db-up redis-up app-up app-down
+.PHONY: dev test coverage coverage-html generate storage-driver infra-up infra-down infra-stop infra-clean db-up redis-up app-up app-down metrics-up metrics-stop metrics-down
 
 # Variáveis
 ENVIRONMENT ?= development
@@ -68,3 +68,16 @@ db-up:
 
 redis-up:
 	docker compose -f docker-compose.infra.yml up -d redis
+
+# Métricas (Prometheus & Grafana)
+metrics-up:
+	@echo "📈 Subindo stack de métricas (Prometheus & Grafana)..."
+	docker compose -f docker-compose.metrics.yml up -d
+
+metrics-stop:
+	@echo "🛑 Parando stack de métricas..."
+	docker compose -f docker-compose.metrics.yml stop
+
+metrics-down:
+	@echo "🗑️ Removendo stack de métricas..."
+	docker compose -f docker-compose.metrics.yml down
