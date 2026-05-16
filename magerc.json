@@ -25,6 +25,18 @@
       "command": "make infra-clean"
     },
     {
+      "name": "📊 Metrics: Start (Prometheus & Grafana)",
+      "command": "make metrics-up"
+    },
+    {
+      "name": "📊 Metrics: Stop",
+      "command": "make metrics-stop"
+    },
+    {
+      "name": "📊 Metrics: Down (Remove Containers)",
+      "command": "make metrics-down"
+    },
+    {
       "name": "🧪 Run All Tests",
       "command": "make test"
     },
