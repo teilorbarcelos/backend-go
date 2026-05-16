@@ -16,7 +16,7 @@ Este projeto não é apenas uma estrutura de pastas, mas um ecossistema completo
 *   **🛡️ Segurança Industrial:** RBAC (Role-Based Access Control), JWT com invalidação via Redis, Rate Limiting e Auditoria Automática (Audit Logs).
 *   **🏗️ Geradores de Código (Scaffolding):** Crie módulos CRUD completos ou novos Storage Drivers em segundos com comandos CLI.
 *   **🧪 Testes de Alta Fidelidade:** 100% de cobertura de código garantida por **Testcontainers** (Postgres e Redis reais nos testes).
-*   **📊 Observabilidade Nativa:** Middleware de métricas Prometheus e Logging estruturado com Zap.
+*   **📊 Observabilidade de Elite:** Stack completa com Prometheus e Grafana. Dashboards pré-configurados para monitoramento em tempo real de RPS, Latência, CPU e Memória.
 *   **📂 Gestão de Media Modular:** Factory pattern para múltiplos storages (S3, Local, etc.) com geração automática de infraestrutura.
 *   **📄 Geração de PDF (Streaming Bypass):** Integração eficiente com microserviço de PDF que realiza o bypass da resposta diretamente para o cliente, sem sobrecarga de memória.
 
@@ -87,6 +87,10 @@ A API estará disponível em `http://localhost:8888`.
 
 O boilerplate já vem configurado com ferramentas essenciais para monitoramento em produção:
 
+*   **Stack de Métricas (Prometheus & Grafana):** Monitoramento visual e em tempo real da saúde da aplicação.
+    *   **Prometheus:** Coleta métricas da aplicação a cada 10s.
+    *   **Grafana:** Visualização de dados via dashboards profissionais.
+    *   **Comandos:** `make metrics-up` para subir a stack e `make metrics-down` para remover.
 *   **Métricas (Prometheus):** Disponíveis no endpoint `/metrics`. Expõe contadores de requisições, latência e status HTTP.
     *   URL: `http://localhost:8888/metrics`
 *   **Logging Estruturado:** Utiliza o `uber-go/zap` para logs em JSON de alta performance.
@@ -169,6 +173,8 @@ A filosofia deste projeto é **100% de cobertura**. Não aceitamos código sem v
 | `make generate name=X` | Gera um novo módulo CRUD completo |
 | `make infra-up` | Sobe Postgres, Redis e RabbitMQ via Docker |
 | `make infra-down` | Remove todos os containers de infraestrutura |
+| `make metrics-up` | Sobe Prometheus e Grafana |
+| `make metrics-down` | Para e remove os containers de métricas |
 
 ---
 
@@ -189,6 +195,8 @@ A documentação interativa via Swagger/OpenAPI está organizada por versão:
 
 *   **Swagger UI:** `http://localhost:8888/v1/docs/index.html`
 *   **JSON Spec:** `http://localhost:8888/v1/docs/doc.json`
+*   **Prometheus UI:** `http://localhost:9090`
+*   **Grafana Dashboard:** `http://localhost:3001` (User: `admin` / Pass: `admin`)
 
 ---
 Desenvolvido com ❤️ para ser a base definitiva de projetos Go de alta performance.
