@@ -160,7 +160,7 @@ func (h *RoleHandler) List(c *gin.Context) {
 
 	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handler.HandleError(c, err)
 		return
 	}
 
@@ -186,18 +186,19 @@ func (h *RoleHandler) List(c *gin.Context) {
 // @Router /role/all [get]
 func (h *RoleHandler) ListAll(c *gin.Context) {
 	params := handler.ParseFilterParams(c)
-	params.Limit = 0
 	params.Filters["ignoreDefaultFilters"] = true
 
 	items, total, err := h.Service.List(c.Request.Context(), params)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handler.HandleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"items": items,
 		"total": total,
+		"page":  params.Page,
+		"limit": params.Limit,
 	})
 }
 

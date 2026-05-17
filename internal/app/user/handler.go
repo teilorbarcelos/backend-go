@@ -9,7 +9,6 @@ import (
 	"backend-go/pkg/database"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type UserServiceI interface {
@@ -169,7 +168,6 @@ func (h *UserHandler) List(c *gin.Context) {
 // @Router /user/all [get]
 func (h *UserHandler) ListAll(c *gin.Context) {
 	params := handler.ParseFilterParams(c)
-	params.Limit = 0 // List all
 	params.Filters["ignoreDefaultFilters"] = true
 
 	items, total, err := h.Service.List(c.Request.Context(), params)
@@ -181,6 +179,8 @@ func (h *UserHandler) ListAll(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"items": items,
 		"total": total,
+		"page":  params.Page,
+		"limit": params.Limit,
 	})
 }
 
@@ -235,9 +235,5 @@ func (h *UserHandler) SetStatus(c *gin.Context) {
 }
 
 func (h *UserHandler) handleError(c *gin.Context, err error) {
-	if err == gorm.ErrRecordNotFound {
-		c.JSON(http.StatusNotFound, gin.H{"error": "recurso não encontrado"})
-		return
-	}
-	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	handler.HandleError(c, err)
 }

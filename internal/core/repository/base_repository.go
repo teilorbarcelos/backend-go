@@ -78,6 +78,9 @@ func (r *BaseRepository[T]) FindByID(id string, preloads ...string) (*T, error) 
 }
 
 func (r *BaseRepository[T]) Update(id string, updates map[string]interface{}) error {
+	if updates != nil {
+		updates["id"] = id
+	}
 	return r.DB.Model(new(T)).Where("id = ?", id).Updates(updates).Error
 }
 
