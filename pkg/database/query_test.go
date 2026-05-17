@@ -1,9 +1,9 @@
 package database
 
 import (
-	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -515,9 +515,12 @@ func TestApplyFilters_Date(t *testing.T) {
 	})
 
 	t.Run("Date Filter with negative timezone offset", func(t *testing.T) {
-		// Force a negative timezone offset to cover the offset < 0 logic in CI (UTC)
-		os.Setenv("TZ", "America/Sao_Paulo")
-		defer os.Unsetenv("TZ")
+		// Save original time.Local and restore it after the test
+		origLocal := time.Local
+		defer func() { time.Local = origLocal }()
+
+		// Force a negative timezone offset (-3 hours = -10800 seconds)
+		time.Local = time.FixedZone("BRT", -10800)
 		
 		params := FilterParams{
 			Filters: map[string]interface{}{
