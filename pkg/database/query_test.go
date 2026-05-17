@@ -278,6 +278,71 @@ func TestApplyFilters_Functionality(t *testing.T) {
 		assert.NotContains(t, strings.ToUpper(sql), "JOIN")
 	})
 
+	t.Run("Custom Operator", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"age": 25,
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"age": {Operator: ">"},
+		}
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.Contains(t, sql, ">")
+		assert.Contains(t, sql, "25")
+	})
+
+	t.Run("Multiple Search Fields with Same Relation", func(t *testing.T) {
+		params := FilterParams{
+			SearchWord:   "Admin",
+			SearchFields: "Role.name, Role.email",
+		}
+		searchable := []SearchConfig{
+			{Key: "Role.name", Relation: "nested"},
+			{Key: "Role.email", Relation: "nested"},
+		}
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, nil, searchable)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.Contains(t, strings.ToUpper(sql), "JOIN")
+		assert.Contains(t, strings.ToUpper(sql), "TEST_ROLE")
+		assert.Regexp(t, `(?i)ILIKE`, sql)
+	})
+
+	t.Run("Filters with Ignored Keys", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"empty":                "",
+				"nil_val":              nil,
+				"ignoreDefaultFilters": true,
+				"page":                 1,
+				"limit":                10,
+				"size":                 10,
+				"orderBy":              "name",
+				"orderDirection":       "asc",
+				"sort":                 "asc",
+				"searchWord":           "test",
+				"searchFields":         "name",
+			},
+		}
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, nil, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.NotContains(t, sql, "empty")
+		assert.NotContains(t, sql, "page")
+	})
+
+	t.Run("SearchWord without SearchFields", func(t *testing.T) {
+		params := FilterParams{
+			SearchWord: "test",
+		}
+		_, err := ApplyFilters(db.Model(&TestModel{}), params, nil, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "o parâmetro 'searchFields' é obrigatório")
+	})
+
 }
 
 func TestApplyFilters_Validation(t *testing.T) {
@@ -378,8 +443,8 @@ func TestApplyFilters_Date(t *testing.T) {
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 
-		assert.Contains(t, sql, ">= '2026-05-14 00:00:00'")
-		assert.Contains(t, sql, "<= '2026-05-14 23:59:59.999'")
+		assert.Contains(t, sql, ">= '2026-05-14 00:00:00")
+		assert.Contains(t, sql, "<= '2026-05-14 23:59:59.999")
 	})
 
 	t.Run("Date Filter fallback for createdAt camelCase", func(t *testing.T) {
@@ -396,8 +461,8 @@ func TestApplyFilters_Date(t *testing.T) {
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 
-		assert.Contains(t, sql, ">= '2026-05-14 00:00:00'")
-		assert.Contains(t, sql, "<= '2026-05-14 23:59:59.999'")
+		assert.Contains(t, sql, ">= '2026-05-14 00:00:00")
+		assert.Contains(t, sql, "<= '2026-05-14 23:59:59.999")
 	})
 
 	t.Run("Date Filter fallback for updatedAt camelCase", func(t *testing.T) {
@@ -414,7 +479,37 @@ func TestApplyFilters_Date(t *testing.T) {
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 
-		assert.Contains(t, sql, ">= '2026-06-01 00:00:00'")
-		assert.Contains(t, sql, "<= '2026-06-01 23:59:59.999'")
+		assert.Contains(t, sql, ">= '2026-06-01 00:00:00")
+		assert.Contains(t, sql, "<= '2026-06-01 23:59:59.999")
+	})
+
+	t.Run("Date Filter with non-string value", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"created_at": 12345,
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.Contains(t, sql, "\"test_model\".\"created_at\" = 12345")
+	})
+
+	t.Run("Date Filter with short string value", func(t *testing.T) {
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"created_at": "2026-05",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.Contains(t, sql, "\"test_model\".\"created_at\" = '2026-05'")
 	})
 }

@@ -53,8 +53,9 @@ func TestAuthService_Login(t *testing.T) {
 			Password: &hashedPassword,
 		},
 		Role: &models.Role{
-			BaseModel: models.BaseModel{ID: "admin"},
-			Name:      "Admin",
+			BaseModel:   models.BaseModel{ID: "admin"},
+			Name:        "Admin",
+			Active:      true,
 			RoleFeature: []models.RoleFeature{
 				{IDFeature: "f1", View: true},
 			},
@@ -150,6 +151,7 @@ func TestAuthService_GetMe(t *testing.T) {
 		Active:    true,
 		Role: &models.Role{
 			BaseModel: models.BaseModel{ID: "admin"},
+			Active:    true,
 		},
 	}
 
@@ -202,6 +204,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			Active:    true,
 			Role: &models.Role{
 				BaseModel: models.BaseModel{ID: "admin"},
+				Active:    true,
 			},
 		}
 		token, _ := security.GenerateRefreshToken(user.ID, user.Email, "admin")
@@ -243,6 +246,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			Active:    false,
 			Role: &models.Role{
 				BaseModel: models.BaseModel{ID: "admin"},
+				Active:    true,
 			},
 		}
 		token, _ := security.GenerateRefreshToken(user.ID, user.Email, "admin")

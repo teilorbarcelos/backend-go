@@ -351,9 +351,21 @@ func TestUserService_ErrorPaths(t *testing.T) {
 		service := NewUserService(mockRepo, sessionMgr)
 		user := &models.User{Email: "test@test.com"}
 		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
 		mockRepo.On("Delete", "1").Return(errors.New("delete error")).Once()
 		err := service.Delete(ctx, "1")
 		assert.Error(t, err)
+	})
+
+	t.Run("Delete Anonymize/Update Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr)
+		user := &models.User{Email: "test@test.com"}
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
+		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
+		err := service.Delete(ctx, "1")
+		assert.Error(t, err)
+		assert.Equal(t, "update error", err.Error())
 	})
 
 	t.Run("SetStatus FindByID Error", func(t *testing.T) {
