@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -115,15 +116,26 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 		if config.Type == "date" {
 			dateStr, ok := value.(string)
 			if ok && len(dateStr) == 10 {
+				t := time.Now()
+				_, offset := t.Zone()
+				sign := "+"
+				if offset < 0 {
+					sign = "-"
+					offset = -offset
+				}
+				hours := offset / 3600
+				minutes := (offset % 3600) / 60
+				tzOffset := fmt.Sprintf("%s%02d:%02d", sign, hours, minutes)
+
 				if operator == "" {
-					start := dateStr + " 00:00:00"
-					end := dateStr + " 23:59:59.999"
+					start := dateStr + " 00:00:00" + tzOffset
+					end := dateStr + " 23:59:59.999" + tzOffset
 					query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", quotedKey, quotedKey), start, end)
 					continue
 				} else if operator == ">=" {
-					value = dateStr + " 00:00:00.000"
+					value = dateStr + " 00:00:00.000" + tzOffset
 				} else if operator == "<=" {
-					value = dateStr + " 23:59:59.999"
+					value = dateStr + " 23:59:59.999" + tzOffset
 				}
 			}
 		}
@@ -145,7 +157,10 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 		query = query.Where(fmt.Sprintf("%s %s ?", quotedKey, operator), value)
 	}
 
-	if params.SearchWord != "" && params.SearchFields != "" {
+	if params.SearchWord != "" {
+		if params.SearchFields == "" {
+			return nil, fmt.Errorf("o parâmetro 'searchFields' é obrigatório quando 'searchWord' é fornecido")
+		}
 		fields := strings.Split(params.SearchFields, ",")
 		var orConditions []string
 		var orValues []interface{}

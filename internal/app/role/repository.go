@@ -61,8 +61,9 @@ func (r *RoleRepository) CreateWithPermissions(role *models.Role, permissions []
 }
 
 func (r *RoleRepository) UpdateWithPermissions(id string, role *models.Role, permissions []models.RoleFeature) error {
+	role.ID = id
 	return r.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.Role{}).Where("id = ?", id).Updates(role).Error; err != nil {
+		if err := tx.Model(role).Updates(role).Error; err != nil {
 			return err
 		}
 

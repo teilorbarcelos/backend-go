@@ -75,7 +75,7 @@ func (s *authService) Login(ctx context.Context, email, password string) (*Login
 		return nil, domainerr.ErrUserNotFound
 	}
 
-	if !user.Active || user.IsDeleted {
+	if !user.Active || user.IsDeleted || (user.Role != nil && !user.Role.Active) {
 		return nil, domainerr.ErrAccountDisabled
 	}
 
@@ -96,7 +96,7 @@ func (s *authService) GetMe(ctx context.Context, email string) (*LoginResponse, 
 		return nil, domainerr.ErrUserNotFound
 	}
 
-	if !user.Active || user.IsDeleted {
+	if !user.Active || user.IsDeleted || (user.Role != nil && !user.Role.Active) {
 		return nil, domainerr.ErrAccountDisabled
 	}
 
@@ -127,7 +127,7 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*L
 		return nil, domainerr.ErrUserNotFound
 	}
 
-	if !user.Active || user.IsDeleted {
+	if !user.Active || user.IsDeleted || (user.Role != nil && !user.Role.Active) {
 		return nil, domainerr.ErrAccountDisabled
 	}
 

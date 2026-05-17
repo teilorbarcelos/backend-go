@@ -154,6 +154,15 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 	if user.Email == config.AppConfig.FirstUserEmail {
 		return errors.New("o usuário administrador inicial não pode ser excluído")
 	}
+	// LGPD User Anonymization
+	updates := map[string]interface{}{
+		"name":  "Deleted User",
+		"email": "deleted-" + id + "@anonymized.local",
+	}
+	if err := s.Repo.WithContext(ctx).Update(id, updates); err != nil {
+		return err
+	}
+
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}

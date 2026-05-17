@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"backend-go/pkg/database"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func ParseFilterParams(c *gin.Context) database.FilterParams {
@@ -60,4 +63,22 @@ func ParseFilterParams(c *gin.Context) database.FilterParams {
 	}
 
 	return params
+}
+
+func HandleError(c *gin.Context, err error) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recurso não encontrado"})
+		return
+	}
+
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "não está disponível") || 
+		strings.Contains(errMsg, "obrigatório") || 
+		strings.Contains(errMsg, "não é permitida") ||
+		strings.Contains(errMsg, "não é permitido") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 }
