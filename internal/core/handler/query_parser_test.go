@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func TestParseFilterParams(t *testing.T) {
@@ -92,5 +94,42 @@ func TestParseFilterParams(t *testing.T) {
 		assert.Equal(t, "2026-12-31", params.Filters["updated_at_end"])
 		assert.NotContains(t, params.Filters, "createdAt")
 		assert.NotContains(t, params.Filters, "updatedAt")
+	})
+}
+
+func TestHandleError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("NotFound Error", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		HandleError(c, gorm.ErrRecordNotFound)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.JSONEq(t, `{"error":"recurso não encontrado"}`, w.Body.String())
+	})
+
+	t.Run("BadRequest Errors", func(t *testing.T) {
+		errorsToTest := []string{
+			"filtro não está disponível",
+			"campo obrigatório",
+			"operação não é permitida",
+			"acesso não é permitido",
+		}
+
+		for _, msg := range errorsToTest {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			HandleError(c, errors.New(msg))
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			assert.JSONEq(t, `{"error":"`+msg+`"}`, w.Body.String())
+		}
+	})
+
+	t.Run("InternalServerError", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		HandleError(c, errors.New("algum erro generico de banco"))
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.JSONEq(t, `{"error":"algum erro generico de banco"}`, w.Body.String())
 	})
 }

@@ -125,7 +125,8 @@ func TestRoleRepository_UpdateWithPermissions(t *testing.T) {
 
 	t.Run("Error - ID Too Long", func(t *testing.T) {
 		invalidID := string(make([]byte, 500))
-		err := repo.UpdateWithPermissions(invalidID, role, nil)
+		tempRole := &models.Role{Name: role.Name, Description: role.Description}
+		err := repo.UpdateWithPermissions(invalidID, tempRole, nil)
 		assert.Error(t, err)
 	})
 
