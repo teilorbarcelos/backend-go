@@ -3,6 +3,7 @@ package database
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -511,5 +512,27 @@ func TestApplyFilters_Date(t *testing.T) {
 		assert.NoError(t, err)
 		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
 		assert.Contains(t, sql, "\"test_model\".\"created_at\" = '2026-05'")
+	})
+
+	t.Run("Date Filter with negative timezone offset", func(t *testing.T) {
+		// Save original time.Local and restore it after the test
+		origLocal := time.Local
+		defer func() { time.Local = origLocal }()
+
+		// Force a negative timezone offset (-3 hours = -10800 seconds)
+		time.Local = time.FixedZone("BRT", -10800)
+		
+		params := FilterParams{
+			Filters: map[string]interface{}{
+				"created_at": "2026-05-14",
+			},
+		}
+		filterable := map[string]FilterConfig{
+			"created_at": {Type: "date"},
+		}
+		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.NoError(t, err)
+		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
+		assert.Contains(t, sql, "-03:00") // America/Sao_Paulo has a -03:00 offset
 	})
 }
