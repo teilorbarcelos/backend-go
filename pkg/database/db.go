@@ -56,9 +56,11 @@ func ConnectDB() {
 		runMigrations()
 	} else {
 		logger.Info("Rodando AutoMigrate...")
+		DB.Exec("CREATE SCHEMA IF NOT EXISTS audit")
 		err = dbAutoMigrate(
 			DB,
 			&models.AuditLog{},
+			&models.ErrorLog{},
 			&models.Role{},
 			&models.Feature{},
 			&models.RoleFeature{},

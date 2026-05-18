@@ -249,5 +249,5 @@ func (h *RoleHandler) SetStatus(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "status atualizado com sucesso"})
+	c.JSON(http.StatusOK, gin.H{"message": "status atualizado com sucesso", "active": body.Active})
 }

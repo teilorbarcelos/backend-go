@@ -104,6 +104,18 @@ func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, filter
 		query = query.Preload(p)
 	}
 
+	if params.Filters == nil {
+		params.Filters = make(map[string]interface{})
+	}
+
+	if params.Filters["ignoreDefaultFilters"] != true {
+		if _, ok := filterable["active"]; ok {
+			if _, exists := params.Filters["active"]; !exists {
+				params.Filters["active"] = true
+			}
+		}
+	}
+
 	query, err := database.ApplyFilters(query, params, filterable, searchable)
 	if err != nil {
 		return nil, 0, err

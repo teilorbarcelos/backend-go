@@ -349,6 +349,15 @@ func TestApplyFilters_Functionality(t *testing.T) {
 func TestApplyFilters_Validation(t *testing.T) {
 	db := testDB.Session(&gorm.Session{DryRun: true})
 
+	t.Run("Pagination Limit", func(t *testing.T) {
+		params := FilterParams{
+			Pagination: Pagination{Limit: 101},
+		}
+		_, err := ApplyFilters(db.Model(&TestModel{}), params, nil, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "limite de paginação '101' não é permitido")
+	})
+
 	t.Run("Blocked Filter", func(t *testing.T) {
 		filterable := map[string]FilterConfig{"name": {}}
 		params := FilterParams{
@@ -508,10 +517,9 @@ func TestApplyFilters_Date(t *testing.T) {
 		filterable := map[string]FilterConfig{
 			"created_at": {Type: "date"},
 		}
-		query, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
-		assert.NoError(t, err)
-		sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Find(&[]TestModel{}) })
-		assert.Contains(t, sql, "\"test_model\".\"created_at\" = '2026-05'")
+		_, err := ApplyFilters(db.Model(&TestModel{}), params, filterable, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "formato de data para o filtro 'created_at' não é permitido")
 	})
 
 	t.Run("Date Filter with negative timezone offset", func(t *testing.T) {

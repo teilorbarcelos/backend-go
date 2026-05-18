@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"backend-go/internal/core/models"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 	"backend-go/pkg/testutil"
@@ -34,7 +35,7 @@ func TestMain(m *testing.M) {
 	RegisterAuditHooks(testDB)
 	
 	// Create tables needed specifically for hooks tests
-	testDB.AutoMigrate(&AuditTestModel{})
+	testDB.AutoMigrate(&AuditTestModel{}, &models.ErrorLog{})
 
 	code := m.Run()
 	os.Exit(code)

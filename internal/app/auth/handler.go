@@ -200,7 +200,7 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, domainerr.ErrUserNotFound), errors.Is(err, domainerr.ErrInvalidCredentials):
 		status = http.StatusUnauthorized
-		message = err.Error()
+		message = "UnauthorizedError"
 	case errors.Is(err, domainerr.ErrAccountDisabled):
 		status = http.StatusForbidden
 		message = err.Error()
@@ -209,7 +209,7 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 		message = err.Error()
 	case errors.Is(err, domainerr.ErrInvalidToken), errors.Is(err, domainerr.ErrTokenExpired):
 		status = http.StatusUnauthorized
-		message = err.Error()
+		message = "UnauthorizedError"
 	}
 
 	c.JSON(status, gin.H{"error": message})

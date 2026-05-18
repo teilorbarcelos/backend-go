@@ -31,7 +31,7 @@ func Authenticate() gin.HandlerFunc {
 		tokenString := parts[1]
 		claims, err := security.ValidateToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token inválido ou expirado"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
 			return
 		}
@@ -41,7 +41,7 @@ func Authenticate() gin.HandlerFunc {
 
 		exists, err := cache.RedisClient.Exists(c.Request.Context(), sessionKey).Result()
 		if err != nil || exists == 0 {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Sessão inválida ou expirada"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
 			return
 		}
