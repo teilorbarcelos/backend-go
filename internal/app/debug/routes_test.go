@@ -104,8 +104,10 @@ func TestDebugHandler_TestPdf(t *testing.T) {
 
 		handler.TestPdf(c)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		assert.Contains(t, w.Body.String(), "provider error")
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
+		assert.Equal(t, "attachment; filename=\"test.pdf\"", w.Header().Get("Content-Disposition"))
+		assert.Contains(t, w.Body.String(), "%PDF-1.4")
 	})
 
 	t.Run("io_copy_error", func(t *testing.T) {
@@ -158,8 +160,10 @@ func TestDebugHandler_TestPdfGet(t *testing.T) {
 
 		handler.TestPdfGet(c)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		assert.Contains(t, w.Body.String(), "provider error")
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
+		assert.Equal(t, "inline; filename=\"test.pdf\"", w.Header().Get("Content-Disposition"))
+		assert.Contains(t, w.Body.String(), "%PDF-1.4")
 	})
 
 	t.Run("io_copy_error", func(t *testing.T) {

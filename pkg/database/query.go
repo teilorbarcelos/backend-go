@@ -39,6 +39,9 @@ type SearchConfig struct {
 }
 
 func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]FilterConfig, searchable []SearchConfig) (*gorm.DB, error) {
+	if params.Limit > 100 {
+		return nil, fmt.Errorf("limite de paginação '%d' não é permitido", params.Limit)
+	}
 	query := db
 	joinedRelations := make(map[string]bool)
 	likeOperator := "ILIKE"
@@ -115,7 +118,11 @@ func ApplyFilters(db *gorm.DB, params FilterParams, filterable map[string]Filter
 
 		if config.Type == "date" {
 			dateStr, ok := value.(string)
-			if ok && len(dateStr) == 10 {
+			if ok {
+				_, err := time.Parse("2006-01-02", dateStr)
+				if err != nil {
+					return nil, fmt.Errorf("formato de data para o filtro '%s' não é permitido", fieldKey)
+				}
 				t := time.Now()
 				_, offset := t.Zone()
 				sign := "+"

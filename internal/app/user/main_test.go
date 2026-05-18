@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	cache.RedisClient = redis.NewClient(opts)
 
 	// Clean and Seed mandatory roles
-	tables := []string{"audit_log", "auth", "user", "product", "role_feature", "feature", "role"}
+	tables := []string{"audit\".\"audit_log", "auth", "user", "product", "role_feature", "feature", "role"}
 	for _, table := range tables {
 		database.DB.Exec(fmt.Sprintf("TRUNCATE TABLE \"%s\" CASCADE", table))
 	}

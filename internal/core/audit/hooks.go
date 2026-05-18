@@ -17,7 +17,7 @@ func RegisterAuditHooks(db *gorm.DB) {
 }
 
 func auditCreateHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
+	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, "audit.") {
 		return
 	}
 
@@ -25,10 +25,13 @@ func auditCreateHook(db *gorm.DB) {
 	newVals := models.MarshalValues(db.Statement.Dest)
 
 	userID := getUserIDFromContext(db)
+	if userID == nil {
+		return
+	}
 
 	log := models.AuditLog{
 		Action:    "CREATE",
-		TableName: db.Statement.Schema.Table,
+		TargetTable: db.Statement.Schema.Table,
 		RecordID:  recordID,
 		OldValues: "{}",
 		NewValues: newVals,
@@ -39,7 +42,7 @@ func auditCreateHook(db *gorm.DB) {
 }
 
 func auditUpdateHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
+	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, "audit.") {
 		return
 	}
 
@@ -79,10 +82,13 @@ func auditUpdateHook(db *gorm.DB) {
 	oldValsStr := models.MarshalValues(oldValues)
 
 	userID := getUserIDFromContext(db)
+	if userID == nil {
+		return
+	}
 
 	log := models.AuditLog{
 		Action:    "UPDATE",
-		TableName: db.Statement.Schema.Table,
+		TargetTable: db.Statement.Schema.Table,
 		RecordID:  recordID,
 		OldValues: oldValsStr,
 		NewValues: newVals,
@@ -93,17 +99,20 @@ func auditUpdateHook(db *gorm.DB) {
 }
 
 func auditDeleteHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || db.Statement.Schema.Table == "audit_log" {
+	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, "audit.") {
 		return
 	}
 
 	recordID := getRecordID(db)
 
 	userID := getUserIDFromContext(db)
+	if userID == nil {
+		return
+	}
 
 	log := models.AuditLog{
 		Action:    "DELETE",
-		TableName: db.Statement.Schema.Table,
+		TargetTable: db.Statement.Schema.Table,
 		RecordID:  recordID,
 		OldValues: "{}",
 		NewValues: "{}",

@@ -11,12 +11,16 @@ import (
 type AuditLog struct {
 	ID        string    `gorm:"type:varchar(40);primaryKey" json:"id"`
 	Action    string    `gorm:"type:varchar(20);not null" json:"action"`      // CREATE, UPDATE, DELETE
-	TableName string    `gorm:"type:varchar(100);not null" json:"table_name"`
+	TargetTable string    `gorm:"type:varchar(100);not null;column:table_name" json:"table_name"`
 	RecordID  string    `gorm:"type:varchar(40);not null" json:"record_id"`
 	OldValues string    `gorm:"type:jsonb" json:"old_values"`
 	NewValues string    `gorm:"type:jsonb" json:"new_values"`
 	UserID    *string   `gorm:"type:varchar(40)" json:"user_id"`              // Quem fez a alteração
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+}
+
+func (AuditLog) TableName() string {
+	return "audit.audit_log"
 }
 
 func (a *AuditLog) BeforeCreate(tx *gorm.DB) (err error) {

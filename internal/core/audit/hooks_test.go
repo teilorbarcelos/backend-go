@@ -15,7 +15,8 @@ type AuditTestModel struct {
 }
 
 func TestAuditHooks(t *testing.T) {
-	db := testDB
+	ctx := context.WithValue(context.Background(), "userID", "test-user-id")
+	db := testDB.WithContext(ctx)
 
 	t.Run("auditCreateHook", func(t *testing.T) {
 		// Test normal create
@@ -42,12 +43,23 @@ func TestAuditHooks(t *testing.T) {
 		assert.Equal(t, "test-user-id", *log2.UserID)
 
 		// Test ignoring audit_log table
-		logRecord := &models.AuditLog{Action: "MANUAL", TableName: "audit_log"}
+		logRecord := &models.AuditLog{Action: "MANUAL", TargetTable: "audit.audit_log"}
 		err = db.Create(logRecord).Error
 		assert.NoError(t, err)
 		
 		var count int64
-		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ?", "CREATE", "audit_log").Count(&count)
+		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ?", "CREATE", "audit.audit_log").Count(&count)
+		assert.Equal(t, int64(0), count)
+	})
+
+	t.Run("auditCreateHook unauthenticated", func(t *testing.T) {
+		dbUnauth := testDB // No context
+		model := &AuditTestModel{Name: "Unauth Create Test"}
+		err := dbUnauth.Create(model).Error
+		assert.NoError(t, err)
+
+		var count int64
+		dbUnauth.Model(&models.AuditLog{}).Where("record_id = ?", model.ID).Count(&count)
 		assert.Equal(t, int64(0), count)
 	})
 
@@ -94,6 +106,20 @@ func TestAuditHooks(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("auditUpdateHook unauthenticated", func(t *testing.T) {
+		dbUnauth := testDB // No context
+		model := &AuditTestModel{Name: "Unauth Update Test"}
+		db.Create(model) // db already has context with userID from TestAuditHooks definition
+
+		model.Name = "Unauth Updated"
+		err := dbUnauth.Save(model).Error
+		assert.NoError(t, err)
+
+		var count int64
+		dbUnauth.Model(&models.AuditLog{}).Where("record_id = ? AND action = ?", model.ID, "UPDATE").Count(&count)
+		assert.Equal(t, int64(0), count)
+	})
+
 	t.Run("getRecordID multi-PK map", func(t *testing.T) {
 		type MultiPKMapModel struct {
 			ID1 string `gorm:"primaryKey"`
@@ -136,7 +162,20 @@ func TestAuditHooks(t *testing.T) {
 		var log models.AuditLog
 		err = db.Where("record_id = ? AND action = ?", model.ID, "DELETE").First(&log).Error
 		assert.NoError(t, err)
-		assert.Equal(t, "audit_test_model", log.TableName)
+		assert.Equal(t, "audit_test_model", log.TargetTable)
+	})
+
+	t.Run("auditDeleteHook unauthenticated", func(t *testing.T) {
+		dbUnauth := testDB // No context
+		model := &AuditTestModel{Name: "Unauth Delete Test"}
+		db.Create(model) // db already has context with userID from TestAuditHooks definition
+
+		err := dbUnauth.Delete(model).Error
+		assert.NoError(t, err)
+
+		var count int64
+		dbUnauth.Model(&models.AuditLog{}).Where("record_id = ? AND action = ?", model.ID, "DELETE").Count(&count)
+		assert.Equal(t, int64(0), count)
 	})
 
 	t.Run("getRecordID Error Paths", func(t *testing.T) {
@@ -156,13 +195,13 @@ func TestAuditHooks(t *testing.T) {
 	
 	t.Run("getUserIDFromContext Error Paths", func(t *testing.T) {
 		// No context
-		dbNoCtx := db.Session(&gorm.Session{})
+		dbNoCtx := testDB.Session(&gorm.Session{})
 		uid := getUserIDFromContext(dbNoCtx)
 		assert.Nil(t, uid)
 
 		// Context with wrong type
 		ctx := context.WithValue(context.Background(), "userID", 123)
-		dbWrongCtx := db.WithContext(ctx)
+		dbWrongCtx := testDB.WithContext(ctx)
 		uid = getUserIDFromContext(dbWrongCtx)
 		assert.Nil(t, uid)
 	})
@@ -195,7 +234,8 @@ func TestAuditHooks(t *testing.T) {
 }
 
 func TestAuditHooks_ErrorPaths(t *testing.T) {
-	db := testDB
+	ctx := context.WithValue(context.Background(), "userID", "test-user-id")
+	db := testDB.WithContext(ctx)
 
 	t.Run("Hooks with DB Error", func(t *testing.T) {
 		dbWithErr := db.Session(&gorm.Session{})
@@ -218,12 +258,12 @@ func TestAuditHooks_ErrorPaths(t *testing.T) {
 	})
 
 	t.Run("auditUpdateHook with unknown recordID", func(t *testing.T) {
-		dbSession := db.Session(&gorm.Session{})
+		dbSession := testDB.Session(&gorm.Session{NewDB: true})
 		dbSession.Statement.Dest = nil
 		dbSession.Statement.Table = "some_table"
 		
 		// Manually set schema to pass the initial check
-		stmt := &gorm.Statement{DB: db}
+		stmt := &gorm.Statement{DB: testDB}
 		stmt.Parse(&AuditTestModel{})
 		dbSession.Statement.Schema = stmt.Schema
 		
@@ -231,9 +271,9 @@ func TestAuditHooks_ErrorPaths(t *testing.T) {
 		auditUpdateHook(dbSession)
 	})
 
-	t.Run("Hooks ignore audit_log table", func(t *testing.T) {
+	t.Run("Hooks ignore audit schema tables", func(t *testing.T) {
 		// Test update to audit_log table
-		logRecord := &models.AuditLog{Action: "UPDATE", TableName: "audit_log", RecordID: "some-id"}
+		logRecord := &models.AuditLog{Action: "UPDATE", TargetTable: "audit.audit_log", RecordID: "some-id"}
 		db.Create(logRecord) // First create it
 		
 		logRecord.Action = "MANUAL"
@@ -242,9 +282,21 @@ func TestAuditHooks_ErrorPaths(t *testing.T) {
 		
 		// Verify no log was created for this update
 		var count int64
-		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ? AND record_id = ?", "UPDATE", "audit_log", "some-id").Count(&count)
+		db.Model(&models.AuditLog{}).Where("action = ? AND table_name = ? AND record_id = ?", "UPDATE", "audit.audit_log", "some-id").Count(&count)
 		// It should only have 0 logs with action=UPDATE for the audit_log table
 		assert.Equal(t, int64(0), count)
+
+		// Test update to tb_error_log table
+		errLogRecord := &models.ErrorLog{ID: "err-id", Source: "test", ErrorMessage: "err"}
+		db.Create(errLogRecord)
+		
+		errLogRecord.ErrorMessage = "updated err"
+		err = db.Save(errLogRecord).Error
+		assert.NoError(t, err)
+
+		var countErr int64
+		db.Model(&models.AuditLog{}).Where("table_name = ? AND record_id = ?", "audit.tb_error_log", "err-id").Count(&countErr)
+		assert.Equal(t, int64(0), countErr)
 	})
 
 	t.Run("auditUpdateHook old values not found", func(t *testing.T) {
