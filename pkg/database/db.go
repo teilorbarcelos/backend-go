@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"backend-go/pkg/logger"
 
 	"backend-go/internal/core/models"
@@ -50,6 +52,13 @@ func ConnectDB() {
 
 	if err != nil {
 		logFatalf("Falha ao conectar no banco de dados: %v", err)
+	}
+
+	sqlDB, err := DB.DB()
+	if err == nil {
+		sqlDB.SetMaxOpenConns(50)
+		sqlDB.SetMaxIdleConns(5)
+		sqlDB.SetConnMaxLifetime(30 * time.Minute)
 	}
 
 	if config.AppConfig.Environment == "production" {

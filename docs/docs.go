@@ -1509,6 +1509,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "id_user": {
+                    "type": "string"
+                },
                 "is_deleted": {
                     "type": "boolean"
                 },
@@ -1526,6 +1529,9 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/backend-go_internal_core_models.User"
                 }
             }
         },
