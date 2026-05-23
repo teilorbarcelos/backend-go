@@ -24,6 +24,13 @@ type CreateProductDTO struct {
 }
 
 func (s *ProductService) Create(ctx context.Context, dto CreateProductDTO) (*models.Product, error) {
+	var userID *string
+	if val := ctx.Value("userID"); val != nil {
+		if id, ok := val.(string); ok && id != "" {
+			userID = &id
+		}
+	}
+
 	product := &models.Product{
 		Name:        dto.Name,
 		SKU:         dto.SKU,
@@ -32,6 +39,7 @@ func (s *ProductService) Create(ctx context.Context, dto CreateProductDTO) (*mod
 		Stock:       dto.Stock,
 		Description: dto.Description,
 		Active:      true,
+		IDUser:      userID,
 	}
 	err := s.Repo.WithContext(ctx).Create(product)
 	return product, err
