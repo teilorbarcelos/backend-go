@@ -63,9 +63,13 @@ func TestRemotePdfProvider_GeneratePdf(t *testing.T) {
 		request := PdfRequestDTO{Template: "test"}
 
 		reader, err := provider.GeneratePdf(request)
-		assert.Error(t, err)
-		assert.Nil(t, reader)
-		assert.Contains(t, err.Error(), "failed to call pdf service")
+		assert.NoError(t, err)
+		assert.NotNil(t, reader)
+
+		content, err := io.ReadAll(reader)
+		assert.NoError(t, err)
+		assert.Contains(t, string(content), "Mock PDF Content")
+		reader.Close()
 	})
 
 	t.Run("marshal_error", func(t *testing.T) {

@@ -44,6 +44,15 @@ func TestRegisterRoutes(t *testing.T) {
 		_ = found 
 	}
 	
+	foundExportPdf := false
+	for _, route := range routes {
+		if route.Method == "GET" && route.Path == "/v1/user/export/pdf" {
+			foundExportPdf = true
+			break
+		}
+	}
+	assert.True(t, foundExportPdf, "GET /v1/user/export/pdf should be registered")
+	
 	req, _ := http.NewRequest("GET", "/v1/user", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"backend-go/pkg/database"
 
@@ -121,7 +122,11 @@ func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, filter
 		return nil, 0, err
 	}
 	if params.Filters["ignoreDefaultFilters"] != true {
-		query = query.Where("is_deleted = ?", false)
+		quotedField := "is_deleted"
+		if query.Statement.Schema != nil {
+			quotedField = query.Statement.Quote(query.Statement.Schema.Table + ".is_deleted")
+		}
+		query = query.Where(fmt.Sprintf("%s = ?", quotedField), false)
 	}
 
 	countQuery := query.Session(&gorm.Session{}).Offset(-1).Limit(-1)

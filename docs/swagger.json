@@ -1244,6 +1244,75 @@
                 }
             }
         },
+        "/user/export/pdf": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Exporta a lista filtrada de usuários para um arquivo PDF.",
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Exportar Usuários para PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo de busca",
+                        "name": "searchWord",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campos para busca",
+                        "name": "searchFields",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo para ordenação",
+                        "name": "orderBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Direção da ordenação",
+                        "name": "orderDirection",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PDF file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/user/{id}": {
             "get": {
                 "security": [

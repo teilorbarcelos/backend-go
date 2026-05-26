@@ -1281,6 +1281,50 @@ paths:
       summary: Listar Todos os Usuários
       tags:
       - User
+  /user/export/pdf:
+    get:
+      description: Exporta a lista filtrada de usuários para um arquivo PDF.
+      parameters:
+      - description: Termo de busca
+        in: query
+        name: searchWord
+        type: string
+      - description: Campos para busca
+        in: query
+        name: searchFields
+        type: string
+      - description: Campo para ordenação
+        in: query
+        name: orderBy
+        type: string
+      - description: Direção da ordenação
+        in: query
+        name: orderDirection
+        type: string
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: PDF file
+          schema:
+            type: file
+        "400":
+          description: Dados inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Exportar Usuários para PDF
+      tags:
+      - User
 securityDefinitions:
   Bearer:
     in: header
