@@ -3,8 +3,11 @@ package user
 import (
 	"context"
 	"errors"
+	"io"
+	"time"
 
 	"backend-go/internal/core/models"
+	"backend-go/internal/infra/pdf"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
@@ -25,12 +28,14 @@ type UserRepositoryI interface {
 type UserService struct {
 	Repo           UserRepositoryI
 	SessionManager session.SessionStore
+	PdfProvider    pdf.PdfProvider
 }
 
-func NewUserService(repo UserRepositoryI, sessionMgr session.SessionStore) *UserService {
+func NewUserService(repo UserRepositoryI, sessionMgr session.SessionStore, pdfProvider pdf.PdfProvider) *UserService {
 	return &UserService{
 		Repo:           repo,
 		SessionManager: sessionMgr,
+		PdfProvider:    pdfProvider,
 	}
 }
 
@@ -181,4 +186,63 @@ func (s *UserService) SetStatus(ctx context.Context, id string, active bool) err
 		return err
 	}
 	return s.SessionManager.InvalidateUserSessions(id, "")
+}
+
+func (s *UserService) ExportPdf(ctx context.Context, params database.FilterParams) (io.ReadCloser, error) {
+	filterable := map[string]database.FilterConfig{
+		"name":       {Operator: "contains"},
+		"email":      {Operator: "equals"},
+		"active":     {Type: "boolean"},
+		"created_at": {Type: "date"},
+		"updated_at": {Type: "date"},
+		"Role.name":  {Relation: "nested"},
+	}
+
+	searchable := []database.SearchConfig{
+		{Key: "name"},
+		{Key: "email"},
+		{Key: "Role.name", Relation: "nested"},
+	}
+
+	users, _, err := s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable, "Role")
+	if err != nil {
+		return nil, err
+	}
+
+	usersData := make([]map[string]interface{}, 0, len(users))
+	for _, u := range users {
+		var roleName *string
+		if u.Role != nil {
+			roleName = &u.Role.Name
+		}
+
+		var phone *string
+		if u.Phone != nil {
+			phone = u.Phone
+		}
+
+		usersData = append(usersData, map[string]interface{}{
+			"id":       u.ID,
+			"name":     u.Name,
+			"email":    u.Email,
+			"phone":    phone,
+			"roleName": roleName,
+			"active":   u.Active,
+		})
+	}
+
+	localTime := time.Now().Format("02/01/2006 15:04:05")
+
+	pdfData := map[string]interface{}{
+		"title":       "Relatório de Usuários",
+		"generatedAt": localTime,
+		"users":       usersData,
+	}
+
+	request := pdf.PdfRequestDTO{
+		Template: "user-list",
+		Data:     pdfData,
+	}
+
+	return s.PdfProvider.GeneratePdf(request)
 }

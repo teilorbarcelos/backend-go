@@ -1,13 +1,16 @@
 package user
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"backend-go/internal/core/models"
+	"backend-go/internal/infra/pdf"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
@@ -66,11 +69,23 @@ func (m *MockUserRepository) WithContext(ctx context.Context) UserRepositoryI {
 	return m
 }
 
+type MockPdfProvider struct {
+	mock.Mock
+}
+
+func (m *MockPdfProvider) GeneratePdf(request pdf.PdfRequestDTO) (io.ReadCloser, error) {
+	args := m.Called(request)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
 
 func TestUserService_Create(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 
 	dto := CreateUserDTO{
 		Name:     "Test User",
@@ -93,7 +108,7 @@ func TestUserService_Create(t *testing.T) {
 func TestUserService_Update(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 	ctx := context.Background()
 
 	// 1. Setup a regular user
@@ -186,7 +201,7 @@ func TestUserService_Update(t *testing.T) {
 func TestUserService_List(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 
 	// Create a user first
 	ctx := context.Background()
@@ -216,7 +231,7 @@ func TestUserService_List(t *testing.T) {
 func TestUserService_Delete(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
@@ -250,7 +265,7 @@ func TestUserService_Delete(t *testing.T) {
 func TestUserService_SetStatus(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
@@ -290,7 +305,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Create Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		mockRepo.On("Create", mock.Anything).Return(errors.New("db error")).Once()
 		_, err := service.Create(ctx, CreateUserDTO{Password: "pass"})
 		assert.Error(t, err)
@@ -298,7 +313,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Update FindByID Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		mockRepo.On("FindByID", "1", mock.Anything).Return(nil, errors.New("not found")).Once()
 		_, err := service.Update(ctx, "1", UpdateUserDTO{})
 		assert.Error(t, err)
@@ -306,7 +321,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Update Repo Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		user := &models.User{Email: "test@test.com"}
 		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
@@ -316,7 +331,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Update Password Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		idAuth := "auth-id"
 		user := &models.User{Email: "test@test.com", IDAuth: &idAuth}
 		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once() // Only once because it fails early
@@ -327,7 +342,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Create Password Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		// Bcrypt has a maximum password length (72 bytes). 
 		// Providing a very long password should trigger an error in HashPassword.
 		longPass := make([]byte, 100)
@@ -340,7 +355,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Delete FindByID Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		mockRepo.On("FindByID", "1", mock.Anything).Return(nil, errors.New("not found")).Once()
 		err := service.Delete(ctx, "1")
 		assert.Error(t, err)
@@ -348,7 +363,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Delete Repo Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		user := &models.User{Email: "test@test.com"}
 		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
@@ -359,7 +374,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("Delete Anonymize/Update Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		user := &models.User{Email: "test@test.com"}
 		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
@@ -370,7 +385,7 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("SetStatus FindByID Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		mockRepo.On("FindByID", "1", mock.Anything).Return(nil, errors.New("not found")).Once()
 		err := service.SetStatus(ctx, "1", true)
 		assert.Error(t, err)
@@ -378,11 +393,86 @@ func TestUserService_ErrorPaths(t *testing.T) {
 
 	t.Run("SetStatus Repo Error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		service := NewUserService(mockRepo, sessionMgr)
+		service := NewUserService(mockRepo, sessionMgr, nil)
 		user := &models.User{Email: "test@test.com"}
 		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
 		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
 		err := service.SetStatus(ctx, "1", true)
 		assert.Error(t, err)
+	})
+}
+
+func TestUserService_ExportPdf(t *testing.T) {
+	sessionMgr := session.NewSessionManager()
+	ctx := context.Background()
+
+	t.Run("Success path", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		mockPdf := new(MockPdfProvider)
+		service := NewUserService(mockRepo, sessionMgr, mockPdf)
+
+		params := database.FilterParams{}
+		roleName := "AdminRole"
+		phone := "123456789"
+		users := []models.User{
+			{
+				Name:   "User One",
+				Email:  "one@example.com",
+				Phone:  &phone,
+				Active: true,
+				Role: &models.Role{
+					Name: roleName,
+				},
+			},
+			{
+				Name:   "User Two",
+				Email:  "two@example.com",
+				Phone:  nil,
+				Active: false,
+				Role:   nil,
+			},
+		}
+
+		mockRepo.On("SearchPaginated", params, mock.Anything, mock.Anything, []string{"Role"}).Return(users, int64(2), nil).Once()
+
+		expectedStream := io.NopCloser(bytes.NewReader([]byte("%PDF-1.4 mock content")))
+		mockPdf.On("GeneratePdf", mock.Anything).Return(expectedStream, nil).Once()
+
+		stream, err := service.ExportPdf(ctx, params)
+		assert.NoError(t, err)
+		assert.NotNil(t, stream)
+
+		content, err := io.ReadAll(stream)
+		assert.NoError(t, err)
+		assert.Equal(t, "%PDF-1.4 mock content", string(content))
+	})
+
+	t.Run("Search error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		mockPdf := new(MockPdfProvider)
+		service := NewUserService(mockRepo, sessionMgr, mockPdf)
+
+		params := database.FilterParams{}
+		mockRepo.On("SearchPaginated", params, mock.Anything, mock.Anything, []string{"Role"}).Return([]models.User{}, int64(0), errors.New("search error")).Once()
+
+		stream, err := service.ExportPdf(ctx, params)
+		assert.Error(t, err)
+		assert.Nil(t, stream)
+		assert.Equal(t, "search error", err.Error())
+	})
+
+	t.Run("PDF generate error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		mockPdf := new(MockPdfProvider)
+		service := NewUserService(mockRepo, sessionMgr, mockPdf)
+
+		params := database.FilterParams{}
+		mockRepo.On("SearchPaginated", params, mock.Anything, mock.Anything, []string{"Role"}).Return([]models.User{}, int64(0), nil).Once()
+		mockPdf.On("GeneratePdf", mock.Anything).Return(nil, errors.New("pdf generation failed")).Once()
+
+		stream, err := service.ExportPdf(ctx, params)
+		assert.Error(t, err)
+		assert.Nil(t, stream)
+		assert.Equal(t, "pdf generation failed", err.Error())
 	})
 }

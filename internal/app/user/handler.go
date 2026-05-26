@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"backend-go/internal/core/handler"
@@ -18,6 +19,7 @@ type UserServiceI interface {
 	GetByID(ctx context.Context, id string) (*models.User, error)
 	Delete(ctx context.Context, id string) error
 	SetStatus(ctx context.Context, id string, active bool) error
+	ExportPdf(ctx context.Context, params database.FilterParams) (io.ReadCloser, error)
 }
 
 type UserHandler struct {
@@ -232,6 +234,39 @@ func (h *UserHandler) SetStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "status atualizado com sucesso", "active": body.Active})
+}
+
+// ExportPdf exporta usuários para PDF
+// @Summary Exportar Usuários para PDF
+// @Description Exporta a lista filtrada de usuários para um arquivo PDF.
+// @Tags User
+// @Produce application/pdf
+// @Security Bearer
+// @Param searchWord query string false "Termo de busca"
+// @Param searchFields query string false "Campos para busca"
+// @Param orderBy query string false "Campo para ordenação"
+// @Param orderDirection query string false "Direção da ordenação"
+// @Success 200 {file} []byte "PDF file"
+// @Failure 400 {object} map[string]string "Dados inválidos"
+// @Failure 500 {object} map[string]string "Erro interno"
+// @Router /user/export/pdf [get]
+func (h *UserHandler) ExportPdf(c *gin.Context) {
+	params := handler.ParseFilterParams(c)
+	params.Limit = 0
+
+	pdfStream, err := h.Service.ExportPdf(c.Request.Context(), params)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	defer pdfStream.Close()
+
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Disposition", `attachment; filename="usuarios.pdf"`)
+
+	if _, err := io.Copy(c.Writer, pdfStream); err != nil {
+		return
+	}
 }
 
 func (h *UserHandler) handleError(c *gin.Context, err error) {

@@ -1,10 +1,11 @@
 package user
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -60,10 +61,18 @@ func (m *MockUserService) SetStatus(ctx context.Context, id string, active bool)
 	return args.Error(0)
 }
 
+func (m *MockUserService) ExportPdf(ctx context.Context, params database.FilterParams) (io.ReadCloser, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
 func setupTestHandler() (*UserHandler, *gin.Engine) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 	handler := NewUserHandler(service)
 
 	gin.SetMode(gin.TestMode)
@@ -93,7 +102,7 @@ func createTestRole(t *testing.T) string {
 func TestNewUserHandler(t *testing.T) {
 	repo := NewUserRepository(database.DB)
 	sessionMgr := session.NewSessionManager()
-	service := NewUserService(repo, sessionMgr)
+	service := NewUserService(repo, sessionMgr, nil)
 	h := NewUserHandler(service)
 
 	assert.NotNil(t, h)
@@ -382,3 +391,64 @@ func TestUserHandler_SetStatus(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
+
+func TestUserHandler_ExportPdf(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		h, r, mockService := setupMockHandler()
+		r.GET("/users/export/pdf", h.ExportPdf)
+
+		pdfStream := io.NopCloser(bytes.NewReader([]byte("%PDF-1.4 mock content")))
+		mockService.On("ExportPdf", mock.Anything, mock.Anything).Return(pdfStream, nil).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users/export/pdf", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/pdf", w.Header().Get("Content-Type"))
+		assert.Equal(t, `attachment; filename="usuarios.pdf"`, w.Header().Get("Content-Disposition"))
+		assert.Equal(t, "%PDF-1.4 mock content", w.Body.String())
+	})
+
+	t.Run("Service Error", func(t *testing.T) {
+		h, r, mockService := setupMockHandler()
+		r.GET("/users/export/pdf", h.ExportPdf)
+
+		mockService.On("ExportPdf", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users/export/pdf", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+
+	t.Run("Copy Error", func(t *testing.T) {
+		h, r, mockService := setupMockHandler()
+		r.GET("/users/export/pdf", h.ExportPdf)
+
+		pdfStream := io.NopCloser(bytes.NewReader([]byte("%PDF-1.4 mock content")))
+		mockService.On("ExportPdf", mock.Anything, mock.Anything).Return(pdfStream, nil).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users/export/pdf", nil)
+		w := &errorResponseWriter{}
+		r.ServeHTTP(w, req)
+	})
+}
+
+type errorResponseWriter struct {
+	header http.Header
+}
+
+func (e *errorResponseWriter) Header() http.Header {
+	if e.header == nil {
+		e.header = make(http.Header)
+	}
+	return e.header
+}
+
+func (e *errorResponseWriter) Write(b []byte) (int, error) {
+	return 0, errors.New("write error")
+}
+
+func (e *errorResponseWriter) WriteHeader(statusCode int) {}
