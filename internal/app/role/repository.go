@@ -60,26 +60,30 @@ func (r *RoleRepository) CreateWithPermissions(role *models.Role, permissions []
 	})
 }
 
+func updatePermissions(tx *gorm.DB, id string, permissions []models.RoleFeature) error {
+	if permissions == nil {
+		return nil
+	}
+	if err := tx.Where("id_role = ?", id).Delete(&models.RoleFeature{}).Error; err != nil {
+		return err
+	}
+	for i := range permissions {
+		permissions[i].IDRole = id
+	}
+	if len(permissions) > 0 {
+		if err := tx.Create(&permissions).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *RoleRepository) UpdateWithPermissions(id string, role *models.Role, permissions []models.RoleFeature) error {
 	role.ID = id
 	return r.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(role).Updates(role).Error; err != nil {
 			return err
 		}
-
-		if permissions != nil {
-			if err := tx.Where("id_role = ?", id).Delete(&models.RoleFeature{}).Error; err != nil {
-				return err
-			}
-			for i := range permissions {
-				permissions[i].IDRole = id
-			}
-			if len(permissions) > 0 {
-				if err := tx.Create(&permissions).Error; err != nil {
-					return err
-				}
-			}
-		}
-		return nil
+		return updatePermissions(tx, id, permissions)
 	})
 }

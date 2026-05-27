@@ -12,6 +12,22 @@ import (
 	"gorm.io/gorm"
 )
 
+func isReservedQueryParam(key string) bool {
+	return key == "page" || key == "limit" || key == "size" || key == "orderBy" || key == "orderDirection" || key == "sort" || key == "searchWord" || key == "searchFields"
+}
+
+func normalizeFilterKey(key string) string {
+	normalizedKey := key
+	for _, prefix := range []string{"createdAt", "updatedAt"} {
+		if normalizedKey == prefix || normalizedKey == prefix+"_start" || normalizedKey == prefix+"_end" {
+			snake := prefix[:7] + "_" + strings.ToLower(prefix[7:])
+			normalizedKey = strings.Replace(normalizedKey, prefix, snake, 1)
+			break
+		}
+	}
+	return normalizedKey
+}
+
 func ParseFilterParams(c *gin.Context) database.FilterParams {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	sizeStr := c.Query("size")
@@ -35,21 +51,13 @@ func ParseFilterParams(c *gin.Context) database.FilterParams {
 	}
 
 	for key, values := range c.Request.URL.Query() {
-		if key == "page" || key == "limit" || key == "size" || key == "orderBy" || key == "orderDirection" || key == "sort" || key == "searchWord" || key == "searchFields" {
+		if isReservedQueryParam(key) {
 			continue
 		}
 
 		if len(values) > 0 {
 			val := values[0]
-
-			normalizedKey := key
-			for _, prefix := range []string{"createdAt", "updatedAt"} {
-				if normalizedKey == prefix || normalizedKey == prefix+"_start" || normalizedKey == prefix+"_end" {
-					snake := prefix[:7] + "_" + strings.ToLower(prefix[7:])
-					normalizedKey = strings.Replace(normalizedKey, prefix, snake, 1)
-					break
-				}
-			}
+			normalizedKey := normalizeFilterKey(key)
 
 			switch val {
 			case "true":

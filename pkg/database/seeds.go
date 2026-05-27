@@ -76,9 +76,7 @@ var Roles = map[string]RoleData{
 	},
 }
 
-func RunSeed(db *gorm.DB) {
-	log.Println("Rodando script de inicialização do banco (Seed)...")
-
+func seedFeatures(db *gorm.DB) {
 	for _, feat := range Features {
 		var existing models.Feature
 		if err := db.FirstOrCreate(&existing, models.Feature{
@@ -89,7 +87,9 @@ func RunSeed(db *gorm.DB) {
 			log.Printf("Erro ao fazer seed de Feature %s: %v", feat.Key, err)
 		}
 	}
+}
 
+func seedRoles(db *gorm.DB) {
 	for _, r := range Roles {
 		var role models.Role
 		if err := db.Where(models.Role{BaseModel: models.BaseModel{ID: r.Key}}).FirstOrCreate(&role, models.Role{
@@ -111,7 +111,9 @@ func RunSeed(db *gorm.DB) {
 			}).FirstOrCreate(&roleFeature)
 		}
 	}
+}
 
+func seedAdminUser(db *gorm.DB) {
 	var adminCount int64
 	db.Model(&models.User{}).Where("email = ?", config.AppConfig.FirstUserEmail).Count(&adminCount)
 
@@ -141,6 +143,14 @@ func RunSeed(db *gorm.DB) {
 			}
 		}
 	}
+}
+
+func RunSeed(db *gorm.DB) {
+	log.Println("Rodando script de inicialização do banco (Seed)...")
+
+	seedFeatures(db)
+	seedRoles(db)
+	seedAdminUser(db)
 
 	log.Println("Seed finalizado com sucesso!")
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const msgInvalidData = "dados inválidos"
+
 type Handler struct {
 	service Service
 }
@@ -55,7 +57,7 @@ type ResetPasswordRequest struct {
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": msgInvalidData})
 		return
 	}
 
@@ -107,7 +109,7 @@ func (h *Handler) Me(c *gin.Context) {
 func (h *Handler) Refresh(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": msgInvalidData})
 		return
 	}
 
@@ -154,7 +156,7 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 func (h *Handler) ValidateToken(c *gin.Context) {
 	var req ValidateTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": msgInvalidData})
 		return
 	}
 
@@ -180,7 +182,7 @@ func (h *Handler) ValidateToken(c *gin.Context) {
 func (h *Handler) ResetPassword(c *gin.Context) {
 	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": msgInvalidData})
 		return
 	}
 
@@ -198,7 +200,7 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 	message := "erro interno do servidor"
 
 	switch {
-	case errors.Is(err, domainerr.ErrUserNotFound), errors.Is(err, domainerr.ErrInvalidCredentials):
+	case errors.Is(err, domainerr.ErrUserNotFound), errors.Is(err, domainerr.ErrInvalidCredentials), errors.Is(err, domainerr.ErrInvalidToken), errors.Is(err, domainerr.ErrTokenExpired):
 		status = http.StatusUnauthorized
 		message = "UnauthorizedError"
 	case errors.Is(err, domainerr.ErrAccountDisabled):
@@ -207,9 +209,6 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 	case errors.Is(err, domainerr.ErrAuthNotConfigured):
 		status = http.StatusUnprocessableEntity
 		message = err.Error()
-	case errors.Is(err, domainerr.ErrInvalidToken), errors.Is(err, domainerr.ErrTokenExpired):
-		status = http.StatusUnauthorized
-		message = "UnauthorizedError"
 	}
 
 	c.JSON(status, gin.H{"error": message})

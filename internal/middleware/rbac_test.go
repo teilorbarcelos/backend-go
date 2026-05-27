@@ -70,6 +70,13 @@ func TestCheckPermission(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
+	// 3.3 Ação Inválida
+	r = setupRouter("product", "invalid_action")
+	req, _ = http.NewRequest("GET", "/test", nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
 	// 4. Sem permissões no contexto
 	r = setupRouter("user", "view")
 	req, _ = http.NewRequest("GET", "/test", nil)

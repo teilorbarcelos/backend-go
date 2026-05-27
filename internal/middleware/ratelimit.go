@@ -11,6 +11,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func getRateLimitKey(c *gin.Context) string {
+	userID, exists := c.Get("userID")
+	if exists {
+		return "ratelimit:user:" + userID.(string)
+	}
+	return "ratelimit:ip:" + c.ClientIP()
+}
+
+func getRateLimitConfig() (time.Duration, int64) {
+	windowStr := config.AppConfig.RateLimitWindow
+	windowDuration, err := time.ParseDuration(windowStr)
+	if err != nil {
+		windowDuration = time.Minute
+	}
+	maxRequests := int64(config.AppConfig.RateLimitMax)
+	return windowDuration, maxRequests
+}
+
 func RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if config.AppConfig.Environment == "test" {
@@ -18,27 +36,15 @@ func RateLimitMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		userID, exists := c.Get("userID")
-		var key string
-		if exists {
-			key = "ratelimit:user:" + userID.(string)
-		} else {
-			key = "ratelimit:ip:" + c.ClientIP()
-		}
+		key := getRateLimitKey(c)
+		windowDuration, maxRequests := getRateLimitConfig()
 
-		windowStr := config.AppConfig.RateLimitWindow
-		windowDuration, err := time.ParseDuration(windowStr)
-		if err != nil {
-			windowDuration = time.Minute
-		}
-
-		maxRequests := int64(config.AppConfig.RateLimitMax)
 		ctx := c.Request.Context()
 
 		pipe := cache.RedisClient.Pipeline()
 		incr := pipe.Incr(ctx, key)
 		ttl := pipe.TTL(ctx, key)
-		_, err = pipe.Exec(ctx)
+		_, err := pipe.Exec(ctx)
 
 		if err != nil && err != ctx.Err() {
 			c.Next()

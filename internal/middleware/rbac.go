@@ -8,6 +8,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func hasPermission(userPerms []security.Permission, feature string, action string) bool {
+	for _, p := range userPerms {
+		if p.Feature == feature {
+			switch action {
+			case "view":
+				return p.View
+			case "create":
+				return p.Create
+			case "delete":
+				return p.Delete
+			case "activate":
+				return p.Activate
+			}
+		}
+	}
+	return false
+}
+
 func CheckPermission(feature string, action string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleID, roleExists := c.Get("userRoleID")
@@ -25,24 +43,7 @@ func CheckPermission(feature string, action string) gin.HandlerFunc {
 
 		userPerms := permissions.([]security.Permission)
 
-		var hasPerm bool
-		for _, p := range userPerms {
-			if p.Feature == feature {
-				switch action {
-				case "view":
-					hasPerm = p.View
-				case "create":
-					hasPerm = p.Create
-				case "delete":
-					hasPerm = p.Delete
-				case "activate":
-					hasPerm = p.Activate
-				}
-				break
-			}
-		}
-
-		if !hasPerm {
+		if !hasPermission(userPerms, feature, action) {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "Você não tem permissão para realizar esta ação",
 				"details": gin.H{
