@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const idEqualsFilter = "id = ?"
+
 type IRepository[T any] interface {
 	Create(entity *T) error
 	FindAll(filter map[string]interface{}, offset, limit int, preloads ...string) ([]T, int64, error)
@@ -82,17 +84,17 @@ func (r *BaseRepository[T]) Update(id string, updates map[string]interface{}) er
 	if updates != nil {
 		updates["id"] = id
 	}
-	return r.DB.Model(new(T)).Where("id = ?", id).Updates(updates).Error
+	return r.DB.Model(new(T)).Where(idEqualsFilter, id).Updates(updates).Error
 }
 
 func (r *BaseRepository[T]) Delete(id string) error {
-	return r.DB.Model(new(T)).Where("id = ?", id).Updates(map[string]interface{}{
+	return r.DB.Model(new(T)).Where(idEqualsFilter, id).Updates(map[string]interface{}{
 		"is_deleted": true,
 	}).Delete(new(T)).Error
 }
 
 func (r *BaseRepository[T]) HardDelete(id string) error {
-	return r.DB.Unscoped().Where("id = ?", id).Delete(new(T)).Error
+	return r.DB.Unscoped().Where(idEqualsFilter, id).Delete(new(T)).Error
 }
 
 func (r *BaseRepository[T]) SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]T, int64, error) {

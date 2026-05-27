@@ -14,6 +14,8 @@ import (
 	"backend-go/pkg/security"
 )
 
+const roleNameFilter = "Role.name"
+
 type UserRepositoryI interface {
 	Create(user *models.User) error
 	Update(id string, updates map[string]interface{}) error
@@ -23,6 +25,41 @@ type UserRepositoryI interface {
 	UpdatePassword(authID string, password string) error
 	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error)
 	WithContext(ctx context.Context) UserRepositoryI
+}
+
+func checkAdminUserUpdate(user *models.User, dto UpdateUserDTO) error {
+	if dto.Active != nil && !*dto.Active {
+		return errors.New("o usuário administrador inicial não pode ser desativado")
+	}
+	if dto.Email != "" && dto.Email != user.Email {
+		return errors.New("o email do usuário administrador inicial não pode ser alterado")
+	}
+	return nil
+}
+
+func buildUserUpdates(user *models.User, dto UpdateUserDTO) (map[string]interface{}, error) {
+	updates := make(map[string]interface{})
+
+	if user.Email == config.AppConfig.FirstUserEmail {
+		if err := checkAdminUserUpdate(user, dto); err != nil {
+			return nil, err
+		}
+	} else {
+		if dto.Email != "" {
+			updates["email"] = dto.Email
+		}
+		if dto.Active != nil {
+			updates["active"] = *dto.Active
+		}
+	}
+
+	if dto.Name != "" {
+		updates["name"] = dto.Name
+	}
+	if dto.IDRole != "" {
+		updates["id_role"] = dto.IDRole
+	}
+	return updates, nil
 }
 
 type UserService struct {
@@ -83,29 +120,9 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 		return nil, err
 	}
 
-	updates := make(map[string]interface{})
-
-	if user.Email == config.AppConfig.FirstUserEmail {
-		if dto.Active != nil && !*dto.Active {
-			return nil, errors.New("o usuário administrador inicial não pode ser desativado")
-		}
-		if dto.Email != "" && dto.Email != user.Email {
-			return nil, errors.New("o email do usuário administrador inicial não pode ser alterado")
-		}
-	} else {
-		if dto.Email != "" {
-			updates["email"] = dto.Email
-		}
-		if dto.Active != nil {
-			updates["active"] = *dto.Active
-		}
-	}
-
-	if dto.Name != "" {
-		updates["name"] = dto.Name
-	}
-	if dto.IDRole != "" {
-		updates["id_role"] = dto.IDRole
+	updates, err := buildUserUpdates(user, dto)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(updates) > 0 {
@@ -130,18 +147,18 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 
 func (s *UserService) List(ctx context.Context, params database.FilterParams) ([]models.User, int64, error) {
 	filterable := map[string]database.FilterConfig{
-		"name":       {Operator: "contains"},
-		"email":      {Operator: "equals"},
-		"active":     {Type: "boolean"},
-		"created_at": {Type: "date"},
-		"updated_at": {Type: "date"},
-		"Role.name":  {Relation: "nested"},
+		"name":         {Operator: "contains"},
+		"email":        {Operator: "equals"},
+		"active":       {Type: "boolean"},
+		"created_at":   {Type: "date"},
+		"updated_at":   {Type: "date"},
+		roleNameFilter: {Relation: "nested"},
 	}
 
 	searchable := []database.SearchConfig{
 		{Key: "name"},
 		{Key: "email"},
-		{Key: "Role.name", Relation: "nested"},
+		{Key: roleNameFilter, Relation: "nested"},
 	}
 
 	return s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable)
@@ -190,18 +207,18 @@ func (s *UserService) SetStatus(ctx context.Context, id string, active bool) err
 
 func (s *UserService) ExportPdf(ctx context.Context, params database.FilterParams) (io.ReadCloser, error) {
 	filterable := map[string]database.FilterConfig{
-		"name":       {Operator: "contains"},
-		"email":      {Operator: "equals"},
-		"active":     {Type: "boolean"},
-		"created_at": {Type: "date"},
-		"updated_at": {Type: "date"},
-		"Role.name":  {Relation: "nested"},
+		"name":         {Operator: "contains"},
+		"email":        {Operator: "equals"},
+		"active":       {Type: "boolean"},
+		"created_at":   {Type: "date"},
+		"updated_at":   {Type: "date"},
+		roleNameFilter: {Relation: "nested"},
 	}
 
 	searchable := []database.SearchConfig{
 		{Key: "name"},
 		{Key: "email"},
-		{Key: "Role.name", Relation: "nested"},
+		{Key: roleNameFilter, Relation: "nested"},
 	}
 
 	users, _, err := s.Repo.WithContext(ctx).SearchPaginated(params, filterable, searchable, "Role")

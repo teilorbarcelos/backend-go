@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -8,7 +9,10 @@ import (
 	"backend-go/internal/core/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
+
+const auditPrefix = "audit."
 
 func RegisterAuditHooks(db *gorm.DB) {
 	db.Callback().Create().After("gorm:create").Register("audit:create", auditCreateHook)
@@ -17,7 +21,7 @@ func RegisterAuditHooks(db *gorm.DB) {
 }
 
 func auditCreateHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, "audit.") {
+	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, auditPrefix) {
 		return
 	}
 
@@ -42,7 +46,7 @@ func auditCreateHook(db *gorm.DB) {
 }
 
 func auditUpdateHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, "audit.") {
+	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, auditPrefix) {
 		return
 	}
 
@@ -56,19 +60,7 @@ func auditUpdateHook(db *gorm.DB) {
 
 	destValue := reflect.Indirect(reflect.ValueOf(db.Statement.Dest))
 	for _, field := range db.Statement.Schema.PrimaryFields {
-		var val interface{}
-		if destValue.Kind() == reflect.Struct {
-			val, _ = field.ValueOf(db.Statement.Context, reflect.ValueOf(db.Statement.Dest))
-		} else if destValue.Kind() == reflect.Map {
-			mapVal := destValue.MapIndex(reflect.ValueOf(field.Name))
-			if !mapVal.IsValid() {
-				mapVal = destValue.MapIndex(reflect.ValueOf(field.DBName))
-			}
-			if mapVal.IsValid() {
-				val = mapVal.Interface()
-			}
-		}
-
+		val, _ := extractFieldValue(destValue, field, db.Statement.Context)
 		if val != nil {
 			query = query.Where(field.DBName+" = ?", val)
 		}
@@ -99,7 +91,7 @@ func auditUpdateHook(db *gorm.DB) {
 }
 
 func auditDeleteHook(db *gorm.DB) {
-	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, "audit.") {
+	if db.Error != nil || db.Statement.Schema == nil || strings.HasPrefix(db.Statement.Schema.Table, auditPrefix) {
 		return
 	}
 
@@ -131,24 +123,7 @@ func getRecordID(db *gorm.DB) string {
 	var ids []string
 
 	for _, field := range db.Statement.Schema.PrimaryFields {
-		var val interface{}
-		var zero bool
-
-		if destValue.Kind() == reflect.Struct {
-			val, zero = field.ValueOf(db.Statement.Context, reflect.ValueOf(db.Statement.Dest))
-		} else if destValue.Kind() == reflect.Map {
-			mapVal := destValue.MapIndex(reflect.ValueOf(field.Name))
-			if !mapVal.IsValid() {
-				mapVal = destValue.MapIndex(reflect.ValueOf(field.DBName))
-			}
-			if mapVal.IsValid() {
-				val = mapVal.Interface()
-				zero = false
-			} else {
-				zero = true
-			}
-		}
-
+		val, zero := extractFieldValue(destValue, field, db.Statement.Context)
 		if !zero && val != nil {
 			ids = append(ids, fmt.Sprintf("%v", val))
 		}
@@ -168,4 +143,21 @@ func getUserIDFromContext(db *gorm.DB) *string {
 		}
 	}
 	return nil
+}
+
+func extractFieldValue(destValue reflect.Value, field *schema.Field, ctx context.Context) (interface{}, bool) {
+	if destValue.Kind() == reflect.Struct {
+		return field.ValueOf(ctx, destValue)
+	}
+	if destValue.Kind() == reflect.Map {
+		mapVal := destValue.MapIndex(reflect.ValueOf(field.Name))
+		if !mapVal.IsValid() {
+			mapVal = destValue.MapIndex(reflect.ValueOf(field.DBName))
+		}
+		if mapVal.IsValid() {
+			return mapVal.Interface(), false
+		}
+		return nil, true
+	}
+	return nil, true
 }

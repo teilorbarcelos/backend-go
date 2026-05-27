@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api/main.go
 
 # Stage 2: Final
-FROM alpine:latest
+FROM alpine:3.19
 
 RUN apk --no-cache add ca-certificates tzdata
 
