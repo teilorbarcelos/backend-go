@@ -121,8 +121,10 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 - `[ ]` Substituir `Count(&total)` antes do `Find` por **count paralelo via goroutine** (já sugerido) ou, melhor, **window function** `COUNT(*) OVER()` retornando total na própria query quando o LIMIT não for absurdamente grande.
 - `[ ]` Padronizar uso de `SELECT <colunas>` em vez de `SELECT *` para evitar I/O desnecessário em tabelas largas.
 - `[ ]` Adicionar índices sugeridos automaticamente: revisar `EXPLAIN` de `SearchPaginated` (filtros `is_deleted`, `active`, FKs de `id_role`, `id_auth`, `id_feature`).
-- `[ ]` Habilitar `PrepareStmt: true` no `gorm.Config` — cache de prepared statements reduz overhead de parse em queries repetidas.
-- `[ ]` Adicionar `NowFunc: time.Now().UTC` no `gorm.Config` para garantir consistência de timestamps.
+- `[x]` Habilitar `PrepareStmt: true` no `gorm.Config` — cache de prepared statements — `pkg/database/db.go:44`
+- `[x]` Adicionar `NowFunc` no `gorm.Config` para consistência de timestamps UTC — `pkg/database/db.go:45`
+- `[x]` `SetConnMaxIdleTime(5m)` para gerenciar conexões ociosas — `pkg/database/db.go:62`
+- `[x]` Aumentar `MaxIdleConns` de 5 para 10 — `pkg/database/db.go:60`
 - `[ ]` Mover `applyFiltersLogic` para uso de placeholders nomeados onde possível, evitando `fmt.Sprintf` em hot path.
 
 ### 2.3. Otimizações de audit hook
@@ -378,7 +380,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 ## 18. Performance - Quick Wins (ordem de prioridade)
 
 1. `[ ]` **Session versioning + bump O(1)** (item 1.1) — substitui SCAN/DEL em produção, ganho enorme em invalidação de sessão.
-2. `[ ]` **`statement_timeout` + `PrepareStmt` no GORM** (item 2.1 e 2.2) — protege DB de queries lentas e reduz parse.
+2. `[x]` **`PrepareStmt` + `NowFunc` + pool tuning no GORM** (item 2.2) — reduz parse e padroniza timestamps.
 3. `[ ]` **HTTP server timeouts explícitos** (item 10.1) — fecha vetor slowloris e melhora UX.
 4. `[ ]` **Rate limit com Lua script atômico** (item 4.3) — elimina race entre INCR e EXPIRE.
 5. `[ ]` **Async batch audit writer** (item 2.3) — move 1 query extra de cada UPDATE para batch assíncrono.

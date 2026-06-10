@@ -38,10 +38,12 @@ func ConnectDB() {
 	var err error
 
 	gormConfig := &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Info),
+		Logger: gormlogger.Default.LogMode(gormlogger.Warn),
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},
+		PrepareStmt: true,
+		NowFunc:     func() time.Time { return time.Now().UTC() },
 	}
 
 	if config.AppConfig.Environment == "production" {
@@ -57,8 +59,9 @@ func ConnectDB() {
 	sqlDB, err := DB.DB()
 	if err == nil {
 		sqlDB.SetMaxOpenConns(50)
-		sqlDB.SetMaxIdleConns(5)
+		sqlDB.SetMaxIdleConns(10)
 		sqlDB.SetConnMaxLifetime(30 * time.Minute)
+		sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 	}
 
 	if config.AppConfig.Environment == "production" {
