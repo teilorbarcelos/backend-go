@@ -95,8 +95,9 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 - `[ ]` Implementar 2FA (TOTP) opcional para perfis sensíveis (administrator).
 
 ### 1.3. Autorização (RBAC)
-- `[ ]` Compilar permissões em um `map[string]uint8` de bitset por usuário no momento do login e cachear no Redis (`session:perms:<userId>`) para lookup O(1) no `rbac.go` em vez de loop linear.
-- `[ ]` Substituir switch de strings no `hasPermission` (`internal/middleware/rbac.go:11`) por lookup em mapa de bits.
+- `[x]` Compilar permissões em `PermissionBitset` (`map[string]uint8`) para lookup O(1) — `pkg/security/jwt.go:28`
+- `[x]` Substituir loop linear + switch no `rbac.go` por `HasPermission()` em mapa de bits — `pkg/security/jwt.go:49`, `rbac.go:11`
+- `[x]` Auth middleware compila o bitset e injeta no contexto como `userPermissionsBitset` — `internal/middleware/auth.go:56`
 - `[ ]` Avaliar Casbin/OPA apenas se a matriz de permissões crescer (não vale a complexidade hoje).
 
 ---
@@ -387,7 +388,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 5. `[ ]` **Async batch audit writer** (item 2.3) — move 1 query extra de cada UPDATE para batch assíncrono.
 6. `[ ]` **Cache-aside + singleflight** (item 3.1) — protege backend de stampede em dados quentes.
 7. `[ ]` **Compressão HTTP + ETag** (item 4.1) — reduz banda em 60-80% para JSON.
-8. `[ ]` **Permissões em bitset cacheado** (item 1.3) — RBAC O(1) por request.
+8. `[x]` **Permissões em bitset cacheado** (item 1.3) — RBAC O(1) por request.
 9. `[ ]` **OpenTelemetry tracing** (item 14.1) — visibilidade fim-a-fim.
 10. `[x]` **Argon2id no lugar de bcrypt** (item 1.2) — não bloqueia goroutines em CPU-intensive hashing.
 

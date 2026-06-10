@@ -13,18 +13,21 @@ import (
 func TestCheckPermission(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockPermissions := []security.Permission{
+		{Feature: "user", View: true, Create: false},
+		{Feature: "product", View: true, Create: true, Delete: true},
+	}
+	mockBitset := security.CompilePermissions(mockPermissions)
+
 	setupRouter := func(feature, action string) *gin.Engine {
 		r := gin.New()
 		r.Use(func(c *gin.Context) {
-			// Mock injeção de permissões (normalmente feito pelo Authenticate)
 			if c.Request.Header.Get("X-Role") != "" {
 				c.Set("userRoleID", c.Request.Header.Get("X-Role"))
 			}
 			if c.Request.Header.Get("X-No-Perms") != "true" {
-				c.Set("userPermissions", []security.Permission{
-					{Feature: "user", View: true, Create: false},
-					{Feature: "product", View: true, Create: true, Delete: true},
-				})
+				c.Set("userPermissions", mockPermissions)
+				c.Set("userPermissionsBitset", mockBitset)
 			}
 			c.Next()
 		})
@@ -85,10 +88,10 @@ func TestCheckPermission(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
-	// 5. Permissões explícitas como nil
+	// 5. PermissõesBitset explicitamente nil
 	r = gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("userPermissions", nil)
+		c.Set("userPermissionsBitset", nil)
 		c.Next()
 	})
 	r.GET("/test", CheckPermission("user", "view"), func(c *gin.Context) {

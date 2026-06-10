@@ -50,6 +50,9 @@ func Authenticate() gin.HandlerFunc {
 		c.Set("userEmail", claims.Email)
 		c.Set("userRoleID", claims.RoleID)
 		c.Set("userPermissions", claims.Permissions)
+		if len(claims.Permissions) > 0 {
+			c.Set("userPermissionsBitset", security.CompilePermissions(claims.Permissions))
+		}
 
 		c.Next()
 	}

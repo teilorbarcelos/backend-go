@@ -16,6 +16,54 @@ type Permission struct {
 	Activate bool   `json:"activate"`
 }
 
+type PermissionBitset map[string]uint8
+
+const (
+	PermView    uint8 = 1 << 0
+	PermCreate  uint8 = 1 << 1
+	PermDelete  uint8 = 1 << 2
+	PermActivate uint8 = 1 << 3
+)
+
+func CompilePermissions(perms []Permission) PermissionBitset {
+	bitset := make(PermissionBitset, len(perms))
+	for _, p := range perms {
+		var bits uint8
+		if p.View {
+			bits |= PermView
+		}
+		if p.Create {
+			bits |= PermCreate
+		}
+		if p.Delete {
+			bits |= PermDelete
+		}
+		if p.Activate {
+			bits |= PermActivate
+		}
+		bitset[p.Feature] = bits
+	}
+	return bitset
+}
+
+func (pb PermissionBitset) HasPermission(feature string, action string) bool {
+	bits, ok := pb[feature]
+	if !ok {
+		return false
+	}
+	switch action {
+	case "view":
+		return bits&PermView != 0
+	case "create":
+		return bits&PermCreate != 0
+	case "delete":
+		return bits&PermDelete != 0
+	case "activate":
+		return bits&PermActivate != 0
+	}
+	return false
+}
+
 type JWTClaims struct {
 	UserID         string       `json:"id"`
 	Email          string       `json:"email"`

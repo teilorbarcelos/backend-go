@@ -82,6 +82,45 @@ func TestJWT(t *testing.T) {
 	})
 }
 
+func TestPermissionBitset(t *testing.T) {
+	perms := []Permission{
+		{Feature: "user", View: true, Create: true},
+		{Feature: "product", View: true, Create: false, Delete: true, Activate: true},
+		{Feature: "dashboard", View: false, Create: false, Delete: false, Activate: false},
+	}
+
+	bitset := CompilePermissions(perms)
+
+	t.Run("HasPermission returns true for allowed actions", func(t *testing.T) {
+		assert.True(t, bitset.HasPermission("user", "view"))
+		assert.True(t, bitset.HasPermission("user", "create"))
+		assert.True(t, bitset.HasPermission("product", "view"))
+		assert.True(t, bitset.HasPermission("product", "delete"))
+		assert.True(t, bitset.HasPermission("product", "activate"))
+	})
+
+	t.Run("HasPermission returns false for denied actions", func(t *testing.T) {
+		assert.False(t, bitset.HasPermission("user", "delete"))
+		assert.False(t, bitset.HasPermission("user", "activate"))
+		assert.False(t, bitset.HasPermission("product", "create"))
+	})
+
+	t.Run("HasPermission returns false for unknown feature", func(t *testing.T) {
+		assert.False(t, bitset.HasPermission("settings", "view"))
+	})
+
+	t.Run("HasPermission returns false for all-false feature", func(t *testing.T) {
+		assert.False(t, bitset.HasPermission("dashboard", "view"))
+		assert.False(t, bitset.HasPermission("dashboard", "create"))
+		assert.False(t, bitset.HasPermission("dashboard", "delete"))
+		assert.False(t, bitset.HasPermission("dashboard", "activate"))
+	})
+
+	t.Run("HasPermission returns false for invalid action", func(t *testing.T) {
+		assert.False(t, bitset.HasPermission("user", "invalid_action"))
+	})
+}
+
 func TestPassword(t *testing.T) {
 	password := "secret123"
 	
