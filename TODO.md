@@ -264,7 +264,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 - `[x]` Health check `/health` (`cmd/api/main.go:70`)
 
 ### 10.1. Otimizações
-- `[ ]` Trocar `http.Server` default por configuração explícita: `ReadHeaderTimeout`, `ReadTimeout`, `WriteTimeout`, `IdleTimeout`, `MaxHeaderBytes`. **Crítico para segurança** — sem `ReadHeaderTimeout` há vetor de slowloris.
+- `[x]` Trocar `http.Server` default por configuração explícita: `ReadHeaderTimeout`, `ReadTimeout`, `WriteTimeout`, `IdleTimeout`, `MaxHeaderBytes`. **Crítico para segurança** — sem `ReadHeaderTimeout` há vetor de slowloris. — `cmd/api/main.go:97-103`
 - `[ ]` Ativar `http2` (Gin suporta via `RunTLS` ou server customizado).
 - `[ ]` Configurar `GracefulShutdown` com tempo >5s se houver workers longos (atualmente 5s em `main.go:114`).
 - `[ ]` Pool de `context.Context` cancelados (evitar leak em conexões que demoram).
