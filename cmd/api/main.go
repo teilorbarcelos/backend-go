@@ -95,8 +95,14 @@ func main() {
 	cache.ConnectRedis()
 	messaging.ConnectRabbitMQ()
 
+	const maxBodySize = 10 << 20
+
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodySize)
+		c.Next()
+	})
 	r.Use(middleware.Metrics())
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimitMiddleware())
