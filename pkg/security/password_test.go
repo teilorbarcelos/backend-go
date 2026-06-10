@@ -43,9 +43,9 @@ func TestPasswordHashing(t *testing.T) {
 	})
 
 	t.Run("HashPassword rand read error", func(t *testing.T) {
-		oldReader := cryptoReader
-		cryptoReader = errorReader{}
-		defer func() { cryptoReader = oldReader }()
+		oldReader := CryptoReader
+		CryptoReader = errorReader{}
+		defer func() { CryptoReader = oldReader }()
 
 		_, err := HashPassword(password)
 		assert.Error(t, err)

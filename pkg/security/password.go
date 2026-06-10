@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var cryptoReader = rand.Reader
+var CryptoReader = rand.Reader
 
 type Argon2Params struct {
 	Time    uint32
@@ -35,7 +35,7 @@ const argon2Prefix = "$argon2id$"
 
 func HashPassword(password string) (string, error) {
 	salt := make([]byte, 16)
-	if _, err := io.ReadFull(cryptoReader, salt); err != nil {
+	if _, err := io.ReadFull(CryptoReader, salt); err != nil {
 		return "", err
 	}
 

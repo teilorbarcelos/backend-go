@@ -7,8 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/redis/go-redis/v9"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
+	"backend-go/pkg/cache"
 	"backend-go/pkg/database"
 )
 
@@ -207,6 +209,10 @@ func TestRoleService_SetStatus(t *testing.T) {
 	})
 
 	t.Run("InvalidateUserSessions Error", func(t *testing.T) {
+		oldClient := cache.RedisClient
+		cache.RedisClient = redis.NewClient(&redis.Options{Addr: "invalid:6379"})
+		defer func() { cache.RedisClient = oldClient }()
+
 		mockRepo := new(MockRoleRepository)
 		service := NewRoleService(mockRepo, sessionMgr)
 		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()

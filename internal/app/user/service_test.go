@@ -14,7 +14,14 @@ import (
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
+	"backend-go/pkg/security"
 )
+
+type failReader struct{}
+
+func (failReader) Read(_ []byte) (int, error) {
+	return 0, errors.New("read error")
+}
 
 type MockUserRepository struct {
 	mock.Mock
@@ -345,11 +352,12 @@ func TestUserService_ErrorPaths(t *testing.T) {
 	})
 
 	t.Run("Create Hash Error", func(t *testing.T) {
+		oldReader := security.CryptoReader
+		security.CryptoReader = failReader{}
+		defer func() { security.CryptoReader = oldReader }()
+
 		mockRepo := new(MockUserRepository)
 		service := NewUserService(mockRepo, sessionMgr, nil)
-		// argon2id's HashPassword fails only if rand.Read fails,
-		// so we test the Create Repo error path instead as a coverage equivalence
-		mockRepo.On("Create", mock.Anything).Return(errors.New("db error")).Once()
 		_, err := service.Create(ctx, CreateUserDTO{
 			Name:     "Test",
 			Email:    "hash-error@test.com",
