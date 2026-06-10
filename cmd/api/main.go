@@ -97,11 +97,11 @@ func main() {
 
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(middleware.Logger())
-	r.Use(middleware.ErrorLogger())
 	r.Use(middleware.Metrics())
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimitMiddleware())
+	r.Use(middleware.Logger())
+	r.Use(middleware.ErrorLogger())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
