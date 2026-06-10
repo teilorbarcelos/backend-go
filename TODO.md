@@ -89,7 +89,8 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 - `[ ]` Reduzir duração do access token para 10-15min e usar refresh rotativo com detecção de reuso (revoga família inteira se o mesmo refresh for usado duas vezes).
 - `[ ]` Adicionar `jti` (JWT ID) único por access token e armazenar no Redis como `SETEX session:access:<jti> <exp> 1` para revogação unitária O(1).
 - `[ ]` Adicionar `aud` (audience) e `iss` (issuer) nas claims e validar no `ParseWithClaims` para evitar token reuse entre APIs.
-- `[ ]` Migrar `bcrypt.DefaultCost` para **argon2id** (`golang.org/x/crypto/argon2`) — bcrypt é CPU-intensive e bloqueia a goroutine; argon2id com memória fixa é mais resistente a GPU e tunable.
+- `[x]` Migrar `bcrypt` para **argon2id** — mais resistente a GPU, memory-hard, não depende de custo fixo — `pkg/security/password.go`
+- `[x]` `CheckPasswordHash` compatível com hashes bcrypt existentes — migração transparente — `pkg/security/password.go:50`
 - `[ ]` Adicionar limitador de tentativas de login (sliding window no Redis) + lockout temporário por `email` e por `IP`.
 - `[ ]` Implementar 2FA (TOTP) opcional para perfis sensíveis (administrator).
 
@@ -388,7 +389,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 7. `[ ]` **Compressão HTTP + ETag** (item 4.1) — reduz banda em 60-80% para JSON.
 8. `[ ]` **Permissões em bitset cacheado** (item 1.3) — RBAC O(1) por request.
 9. `[ ]` **OpenTelemetry tracing** (item 14.1) — visibilidade fim-a-fim.
-10. `[ ]` **Argon2id no lugar de bcrypt** (item 1.2) — não bloqueia goroutines em CPU-intensive hashing.
+10. `[x]` **Argon2id no lugar de bcrypt** (item 1.2) — não bloqueia goroutines em CPU-intensive hashing.
 
 ---
 
