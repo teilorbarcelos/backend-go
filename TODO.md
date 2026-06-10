@@ -181,7 +181,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 
 ### 4.3. Rate limit
 - `[ ]` Migrar para **sliding window log** ou **token bucket** (mais justo que fixed window com `INCR`).
-- `[ ]` Usar **Redis Lua script** atômico em vez de pipeline+`Expire` separado (evita race entre `INCR` e `EXPIRE` em `ratelimit.go:56-59`).
+- `[x]` Usar **Redis Lua script** atômico em vez de pipeline+`Expire` separado — `internal/middleware/ratelimit.go:15-25`
 - `[ ]` Suportar rate limit por **rota + usuário** (atualmente é global por usuário/IP).
 - `[ ]` Adicionar burst control (e.g., 200 req instantâneo, depois 100/min sustentado).
 
@@ -382,7 +382,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 1. `[ ]` **Session versioning + bump O(1)** (item 1.1) — substitui SCAN/DEL em produção, ganho enorme em invalidação de sessão.
 2. `[x]` **`PrepareStmt` + `NowFunc` + pool tuning no GORM** (item 2.2) — reduz parse e padroniza timestamps.
 3. `[ ]` **HTTP server timeouts explícitos** (item 10.1) — fecha vetor slowloris e melhora UX.
-4. `[ ]` **Rate limit com Lua script atômico** (item 4.3) — elimina race entre INCR e EXPIRE.
+4. `[x]` **Rate limit com Lua script atômico** (item 4.3) — elimina race entre INCR e EXPIRE.
 5. `[ ]` **Async batch audit writer** (item 2.3) — move 1 query extra de cada UPDATE para batch assíncrono.
 6. `[ ]` **Cache-aside + singleflight** (item 3.1) — protege backend de stampede em dados quentes.
 7. `[ ]` **Compressão HTTP + ETag** (item 4.1) — reduz banda em 60-80% para JSON.
