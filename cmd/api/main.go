@@ -58,7 +58,7 @@ func main() {
 	audit.RegisterAuditHooks(database.DB)
 
 	if config.AppConfig.Environment != "test" {
-		auditBuffer := audit.NewAuditBuffer(database.DB, 50, 500*time.Millisecond)
+		auditBuffer := audit.NewAuditBuffer(database.DB, 50, 100*time.Millisecond)
 		audit.SetAuditBuffer(auditBuffer)
 		defer auditBuffer.Shutdown()
 	}
@@ -82,15 +82,18 @@ func main() {
 	})
 
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	r.GET("/api-docs/openapi.json", func(c *gin.Context) {
+		c.File("./docs/swagger.json")
+	})
 
 	sessionMgr := session.NewSessionManager()
 
 	v1 := r.Group("/v1")
 	{
-		v1.GET("/docs", func(c *gin.Context) {
+			v1.GET("/docs", func(c *gin.Context) {
 			c.Redirect(http.StatusMovedPermanently, "/v1/docs/index.html")
 		})
-		v1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		v1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/api-docs/openapi.json")))
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
 		auth.RegisterRoutes(v1, protected, database.DB)

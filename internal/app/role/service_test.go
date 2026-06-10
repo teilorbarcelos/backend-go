@@ -69,6 +69,11 @@ func (m *MockRoleRepository) BulkIncrementSessionVersion(ctx context.Context, ro
 	return args.Error(0)
 }
 
+func (m *MockRoleRepository) FindUserIDsByRole(ctx context.Context, roleID string) ([]string, error) {
+	args := m.Called(ctx, roleID)
+	return args.Get(0).([]string), args.Error(1)
+}
+
 func TestRoleService_Create(t *testing.T) {
 	repo := NewRoleRepository(database.DB)
 	sessionMgr := session.NewSessionManager()

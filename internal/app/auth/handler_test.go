@@ -105,7 +105,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 
 	t.Run("Auth Not Configured Error", func(t *testing.T) {

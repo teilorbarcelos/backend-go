@@ -42,8 +42,13 @@ func (s *SessionManager) CreateRefreshToken(ctx context.Context, userId string, 
 
 func (s *SessionManager) InvalidateUserSessions(userId string, roleId string) error {
 	ctx := context.Background()
-	key := fmt.Sprintf("session:ver:%s", userId)
-	return cache.RedisClient.Incr(ctx, key).Err()
+	verKey := fmt.Sprintf("session:ver:%s", userId)
+	if err := cache.RedisClient.Incr(ctx, verKey).Err(); err != nil {
+		return err
+	}
+
+	pattern := fmt.Sprintf("session:role:*:user:%s:refresh:*", userId)
+	return s.deleteByPattern(ctx, pattern)
 }
 
 func (s *SessionManager) InvalidateRoleSessions(roleId string) error {
