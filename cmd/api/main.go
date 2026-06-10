@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -111,6 +112,11 @@ func main() {
 	const maxBodySize = 10 << 20
 
 	r := gin.New()
+	if config.AppConfig.TrustedProxies != "" {
+		r.SetTrustedProxies(strings.Split(config.AppConfig.TrustedProxies, ","))
+	} else {
+		r.SetTrustedProxies(nil)
+	}
 	r.Use(gin.Recovery())
 	r.Use(func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodySize)

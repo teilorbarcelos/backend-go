@@ -15,6 +15,7 @@ type Config struct {
 	RabbitMQUrl       string `mapstructure:"RABBITMQ_URL"`
 	JWTSecret         string `mapstructure:"JWT_SECRET"`
 	JWTIssuer         string `mapstructure:"JWT_ISSUER"`
+	TrustedProxies    string `mapstructure:"TRUSTED_PROXIES"`
 	JWTAudience       string `mapstructure:"JWT_AUDIENCE"`
 	RateLimitMax      int    `mapstructure:"RATE_LIMIT_MAX"`
 	RateLimitWindow   string `mapstructure:"RATE_LIMIT_WINDOW"`
@@ -59,6 +60,7 @@ func LoadConfig() {
 	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "5m")
 	viper.SetDefault("JWT_ISSUER", "backend-go")
 	viper.SetDefault("JWT_AUDIENCE", "backend-go-api")
+	viper.SetDefault("TRUSTED_PROXIES", "")
 	viper.SetDefault("JWT_ACCESS_EXPIRY", "15m")
 	viper.SetDefault("JWT_REFRESH_EXPIRY", "168h")
 	viper.SetDefault("DB_STATEMENT_TIMEOUT", 30000)
