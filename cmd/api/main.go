@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,7 +28,35 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
 )
+
+var openAPISpec []byte
+
+func loadOpenAPISpec() {
+	data, err := os.ReadFile("./docs/swagger.json")
+	if err != nil {
+		logger.Warn("failed to read swagger.json", zap.Error(err))
+		return
+	}
+
+	var spec map[string]interface{}
+	if err := json.Unmarshal(data, &spec); err != nil {
+		logger.Warn("failed to parse swagger.json", zap.Error(err))
+		openAPISpec = data
+		return
+	}
+
+	if _, ok := spec["openapi"]; !ok {
+		if v, ok := spec["swagger"]; ok {
+			spec["openapi"] = v
+		} else {
+			spec["openapi"] = "3.0.0"
+		}
+	}
+
+	openAPISpec, _ = json.Marshal(spec)
+}
 
 // @title Backend Go API
 // @version 1.0
@@ -81,9 +110,15 @@ func main() {
 		})
 	})
 
+	loadOpenAPISpec()
+
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/api-docs/openapi.json", func(c *gin.Context) {
-		c.File("./docs/swagger.json")
+		if openAPISpec != nil {
+			c.Data(http.StatusOK, "application/json", openAPISpec)
+		} else {
+			c.File("./docs/swagger.json")
+		}
 	})
 
 	sessionMgr := session.NewSessionManager()
