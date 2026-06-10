@@ -76,11 +76,19 @@ type JWTClaims struct {
 var jwtParseWithClaims = jwt.ParseWithClaims
 
 func GenerateToken(userID, email, roleID string, permissions []Permission, sessionVersion int) (string, error) {
-	return generateToken(userID, email, roleID, permissions, sessionVersion, 24*time.Hour)
+	expiry := 15 * time.Minute
+	if d, err := time.ParseDuration(config.AppConfig.JWTAccessExpiry); err == nil {
+		expiry = d
+	}
+	return generateToken(userID, email, roleID, permissions, sessionVersion, expiry)
 }
 
 func GenerateRefreshToken(userID, email, roleID string) (string, error) {
-	return generateToken(userID, email, roleID, nil, 0, 7*24*time.Hour)
+	expiry := 7 * 24 * time.Hour
+	if d, err := time.ParseDuration(config.AppConfig.JWTRefreshExpiry); err == nil {
+		expiry = d
+	}
+	return generateToken(userID, email, roleID, nil, 0, expiry)
 }
 
 func generateToken(userID, email, roleID string, permissions []Permission, sessionVersion int, duration time.Duration) (string, error) {
@@ -93,6 +101,8 @@ func generateToken(userID, email, roleID string, permissions []Permission, sessi
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    config.AppConfig.JWTIssuer,
+			Audience:  jwt.ClaimStrings{config.AppConfig.JWTAudience},
 		},
 	}
 

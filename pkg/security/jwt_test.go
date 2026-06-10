@@ -12,6 +12,8 @@ import (
 func TestJWT(t *testing.T) {
 	// Setup
 	config.AppConfig.JWTSecret = "test-secret"
+	config.AppConfig.JWTIssuer = "test-issuer"
+	config.AppConfig.JWTAudience = "test-audience"
 	userID := "user-123"
 	email := "test@test.com"
 	roleID := "admin"
@@ -66,6 +68,35 @@ func TestJWT(t *testing.T) {
 		resultClaims, err := ValidateToken(tokenString)
 		assert.Error(t, err)
 		assert.Nil(t, resultClaims)
+	})
+
+	t.Run("Generate Token with custom expiry", func(t *testing.T) {
+		orig := config.AppConfig.JWTAccessExpiry
+		config.AppConfig.JWTAccessExpiry = "30m"
+		defer func() { config.AppConfig.JWTAccessExpiry = orig }()
+
+		token, err := GenerateToken(userID, email, roleID, permissions, 1)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+
+		claims, err := ValidateToken(token)
+		assert.NoError(t, err)
+		assert.Equal(t, config.AppConfig.JWTIssuer, claims.Issuer)
+		assert.Contains(t, claims.Audience, config.AppConfig.JWTAudience)
+	})
+
+	t.Run("Generate Refresh Token with custom expiry", func(t *testing.T) {
+		orig := config.AppConfig.JWTRefreshExpiry
+		config.AppConfig.JWTRefreshExpiry = "72h"
+		defer func() { config.AppConfig.JWTRefreshExpiry = orig }()
+
+		token, err := GenerateRefreshToken(userID, email, roleID)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+
+		claims, err := ValidateToken(token)
+		assert.NoError(t, err)
+		assert.Empty(t, claims.Permissions)
 	})
 
 	t.Run("Validate Token - Invalid but no error", func(t *testing.T) {

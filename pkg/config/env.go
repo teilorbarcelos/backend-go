@@ -14,6 +14,8 @@ type Config struct {
 	RedisUrl          string `mapstructure:"REDIS_URL"`
 	RabbitMQUrl       string `mapstructure:"RABBITMQ_URL"`
 	JWTSecret         string `mapstructure:"JWT_SECRET"`
+	JWTIssuer         string `mapstructure:"JWT_ISSUER"`
+	JWTAudience       string `mapstructure:"JWT_AUDIENCE"`
 	RateLimitMax      int    `mapstructure:"RATE_LIMIT_MAX"`
 	RateLimitWindow   string `mapstructure:"RATE_LIMIT_WINDOW"`
 	FirstUserEmail    string `mapstructure:"FIRST_USER"`
@@ -24,6 +26,8 @@ type Config struct {
 	DBMaxIdleConns       int    `mapstructure:"DB_MAX_IDLE_CONNS"`
 	DBConnMaxLifetime    string `mapstructure:"DB_CONN_MAX_LIFETIME"`
 	DBConnMaxIdleTime    string `mapstructure:"DB_CONN_MAX_IDLE_TIME"`
+	JWTAccessExpiry     string `mapstructure:"JWT_ACCESS_EXPIRY"`
+	JWTRefreshExpiry    string `mapstructure:"JWT_REFRESH_EXPIRY"`
 	DBStatementTimeout   int    `mapstructure:"DB_STATEMENT_TIMEOUT"`
 	DBIdleInTxTimeout    int    `mapstructure:"DB_IDLE_IN_TX_TIMEOUT"`
 }
@@ -53,6 +57,10 @@ func LoadConfig() {
 	viper.SetDefault("DB_MAX_IDLE_CONNS", 10)
 	viper.SetDefault("DB_CONN_MAX_LIFETIME", "30m")
 	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "5m")
+	viper.SetDefault("JWT_ISSUER", "backend-go")
+	viper.SetDefault("JWT_AUDIENCE", "backend-go-api")
+	viper.SetDefault("JWT_ACCESS_EXPIRY", "15m")
+	viper.SetDefault("JWT_REFRESH_EXPIRY", "168h")
 	viper.SetDefault("DB_STATEMENT_TIMEOUT", 30000)
 	viper.SetDefault("DB_IDLE_IN_TX_TIMEOUT", 60000)
 
