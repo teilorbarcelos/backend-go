@@ -118,6 +118,7 @@ func main() {
 	})
 	r.Use(middleware.Metrics())
 	r.Use(middleware.CORS())
+	r.Use(middleware.Gzip())
 	r.Use(middleware.RateLimitMiddleware())
 	r.Use(middleware.CacheControl())
 	r.Use(func(c *gin.Context) {
