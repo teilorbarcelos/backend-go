@@ -1,6 +1,8 @@
 package database
 
 import (
+	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -41,7 +43,14 @@ func ConnectDB() {
 	var err error
 
 	gormConfig := &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Warn),
+		Logger: gormlogger.New(
+			log.New(os.Stderr, "\r\n", log.LstdFlags),
+			gormlogger.Config{
+				SlowThreshold: 100 * time.Millisecond,
+				LogLevel:      gormlogger.Warn,
+				Colorful:      true,
+			},
+		),
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},
