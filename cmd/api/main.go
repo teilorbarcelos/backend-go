@@ -76,21 +76,25 @@ func loadOpenAPISpec() {
 // @in header
 // @name Authorization
 
+func validateProductionConfig() {
+	if len(config.AppConfig.JWTSecret) < 32 {
+		logger.Log.Sugar().Fatalf("JWT_SECRET deve ter no mínimo 32 caracteres em produção")
+	}
+	if config.AppConfig.RateLimitMax <= 0 {
+		logger.Log.Sugar().Fatalf("RATE_LIMIT_MAX deve ser maior que 0 em produção")
+	}
+	if _, err := time.ParseDuration(config.AppConfig.RateLimitWindow); err != nil {
+		logger.Log.Sugar().Fatalf("RATE_LIMIT_WINDOW inválido (%s): %v", config.AppConfig.RateLimitWindow, err)
+	}
+}
+
 func main() {
 	config.LoadConfig()
 	logger.InitLogger(config.AppConfig.Environment)
 
 	if config.AppConfig.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
-		if len(config.AppConfig.JWTSecret) < 32 {
-			logger.Log.Sugar().Fatalf("JWT_SECRET deve ter no mínimo 32 caracteres em produção")
-		}
-		if config.AppConfig.RateLimitMax <= 0 {
-			logger.Log.Sugar().Fatalf("RATE_LIMIT_MAX deve ser maior que 0 em produção")
-		}
-		if _, err := time.ParseDuration(config.AppConfig.RateLimitWindow); err != nil {
-			logger.Log.Sugar().Fatalf("RATE_LIMIT_WINDOW inválido (%s): %v", config.AppConfig.RateLimitWindow, err)
-		}
+		validateProductionConfig()
 	}
 	database.ConnectDB()
 	audit.RegisterAuditHooks(database.DB)
@@ -115,6 +119,7 @@ func main() {
 	r.Use(middleware.Metrics())
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimitMiddleware())
+	r.Use(middleware.CacheControl())
 	r.Use(middleware.Logger())
 	r.Use(middleware.ErrorLogger())
 
