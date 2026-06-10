@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
+	"backend-go/pkg/config"
 )
 
 func TestParseFilterParams(t *testing.T) {
@@ -126,10 +127,26 @@ func TestHandleError(t *testing.T) {
 	})
 
 	t.Run("InternalServerError", func(t *testing.T) {
+		origEnv := config.AppConfig.Environment
+		config.AppConfig.Environment = "development"
+		defer func() { config.AppConfig.Environment = origEnv }()
+
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		HandleError(c, errors.New("algum erro generico de banco"))
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		assert.JSONEq(t, `{"error":"algum erro generico de banco"}`, w.Body.String())
+	})
+
+	t.Run("InternalServerError in production sanitizes message", func(t *testing.T) {
+		origEnv := config.AppConfig.Environment
+		config.AppConfig.Environment = "production"
+		defer func() { config.AppConfig.Environment = origEnv }()
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		HandleError(c, errors.New("internal: connection to postgres failed with fatal error code 12345"))
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.JSONEq(t, `{"error":"erro interno do servidor"}`, w.Body.String())
 	})
 }
