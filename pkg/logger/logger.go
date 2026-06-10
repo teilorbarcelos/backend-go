@@ -7,6 +7,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type ctxKey string
+
+const RequestIDKey ctxKey = "requestId"
+
 var Log *zap.Logger
 
 func init() {
@@ -57,7 +61,7 @@ func Debug(msg string, fields ...zap.Field) {
 }
 
 func WithContext(ctx context.Context) *zap.Logger {
-	if requestID, ok := ctx.Value("requestId").(string); ok {
+	if requestID, ok := ctx.Value(RequestIDKey).(string); ok {
 		return Log.With(zap.String("requestId", requestID))
 	}
 	return Log

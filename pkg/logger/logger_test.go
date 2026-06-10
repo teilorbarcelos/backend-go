@@ -72,7 +72,7 @@ func TestWithContext(t *testing.T) {
 	assert.Equal(t, 1, logs.FilterMessage("no request id").Len())
 
 	// With requestId
-	ctx = context.WithValue(context.Background(), "requestId", "123")
+	ctx = context.WithValue(context.Background(), RequestIDKey, "123")
 	l = WithContext(ctx)
 	l.Info("with request id")
 	assert.Equal(t, 1, logs.FilterMessage("with request id").Len())
