@@ -144,6 +144,13 @@ func main() {
 		dashboard.RegisterRoutes(protected, database.DB)
 	}
 
+	r.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "rota não encontrada"})
+	})
+	r.NoMethod(func(c *gin.Context) {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "método não permitido"})
+	})
+
 	addr := config.AppConfig.Host + ":" + config.AppConfig.Port
 	srv := &http.Server{
 		Addr:              addr,
