@@ -85,6 +85,12 @@ func main() {
 		if len(config.AppConfig.JWTSecret) < 32 {
 			logger.Log.Sugar().Fatalf("JWT_SECRET deve ter no mínimo 32 caracteres em produção")
 		}
+		if config.AppConfig.RateLimitMax <= 0 {
+			logger.Log.Sugar().Fatalf("RATE_LIMIT_MAX deve ser maior que 0 em produção")
+		}
+		if _, err := time.ParseDuration(config.AppConfig.RateLimitWindow); err != nil {
+			logger.Log.Sugar().Fatalf("RATE_LIMIT_WINDOW inválido (%s): %v", config.AppConfig.RateLimitWindow, err)
+		}
 	}
 	database.ConnectDB()
 	audit.RegisterAuditHooks(database.DB)
