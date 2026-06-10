@@ -406,6 +406,30 @@ func TestUserService_ErrorPaths(t *testing.T) {
 		err := service.SetStatus(ctx, "1", true)
 		assert.Error(t, err)
 	})
+
+	t.Run("IncrementSessionVersion Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr, nil)
+		user := &models.User{Email: "test@test.com"}
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("IncrementSessionVersion", mock.Anything, "1").Return(0, errors.New("version err"))
+
+		err := service.SetStatus(ctx, "1", true)
+		assert.NoError(t, err)
+	})
+
+	t.Run("SetSessionVersion Success", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr, nil)
+		user := &models.User{Email: "test@test.com"}
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("IncrementSessionVersion", mock.Anything, "1").Return(42, nil)
+
+		err := service.SetStatus(ctx, "1", true)
+		assert.NoError(t, err)
+	})
 }
 
 func TestUserService_ExportPdf(t *testing.T) {

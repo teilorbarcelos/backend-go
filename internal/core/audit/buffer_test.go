@@ -2,12 +2,14 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/internal/core/models"
+	"gorm.io/gorm"
 )
 
 func uniqueLog(action string) *models.AuditLog {
@@ -136,23 +138,40 @@ func TestAuditBuffer_Shutdown(t *testing.T) {
 func TestAuditBuffer_FullBuffer(t *testing.T) {
 	t.Run("Full buffer drops entry", func(t *testing.T) {
 		ref := uniqueLog("FULL_BUF")
-		buf := NewAuditBuffer(testDB, 100, 1*time.Minute)
-		defer buf.Shutdown()
+		buf := NewAuditBuffer(testDB, 10, time.Hour)
+		buf.Shutdown()
 
-		for i := 0; i < 200; i++ {
+		for i := 0; i < 21; i++ {
 			buf.Push(&models.AuditLog{
 				Action:      ref.Action,
 				TargetTable: ref.TargetTable,
-				RecordID:    "",
+				RecordID:    fmt.Sprintf("%d", i),
 				OldValues:   "{}",
 				NewValues:   "{}",
 			})
 		}
 
-		buf.Shutdown()
+		buf.drainAndFlush(nil)
 
 		var count int64
 		testDB.Model(&models.AuditLog{}).Where("table_name = ?", ref.TargetTable).Count(&count)
-		assert.GreaterOrEqual(t, count, int64(100))
+		assert.Equal(t, int64(20), count)
+	})
+}
+
+func TestAuditBuffer_FlushError(t *testing.T) {
+	t.Run("flush error is logged but not propagated", func(t *testing.T) {
+		buf := &AuditBuffer{
+			entries:   make(chan *models.AuditLog, 10),
+			done:      make(chan struct{}),
+			db:        testDB.Session(&gorm.Session{NewDB: true}),
+			batchSize: 10,
+		}
+		buf.db.AddError(errors.New("db error"))
+
+		// Via drainAndFlush
+		buf.drainAndFlush([]*models.AuditLog{
+			{Action: "ERR_FLUSH", TargetTable: "flush_err_test", RecordID: "1"},
+		})
 	})
 }

@@ -26,7 +26,7 @@ func TestSessionManager_InvalidateUserSessions(t *testing.T) {
 	ctx := context.Background()
 	userId := "user123"
 	roleId := "admin"
-	verKey := fmt.Sprintf("session:ver:%s", userId)
+	verKey := fmt.Sprintf(sessionVersionKeyFormat, userId)
 
 	t.Run("Invalidate bumps version key", func(t *testing.T) {
 		// Clean up
@@ -94,18 +94,30 @@ func TestSessionManager_DeleteByPattern_Error(t *testing.T) {
 		cache.ConnectRedis()
 	})
 
-	t.Run("Redis Del error", func(t *testing.T) {
-		userId := "error-user"
-		key := fmt.Sprintf("session:role:admin:user:%s:1", userId)
-		cache.RedisClient.Set(ctx, key, "data", 0)
+	t.Run("Redis Del error on InvalidateUserSessions", func(t *testing.T) {
+		userId := "del-err-user"
+		refreshKey := fmt.Sprintf("session:role:admin:user:%s:refresh:hash123", userId)
+		cache.RedisClient.Set(ctx, refreshKey, "1", 0)
+		defer cache.RedisClient.Del(ctx, refreshKey)
 
 		hook := &delErrorHook{enabled: true}
 		cache.RedisClient.AddHook(hook)
+		defer func() { hook.enabled = false }()
 
 		err := sm.InvalidateUserSessions(userId, "admin")
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "forced del error")
+	})
 
-		hook.enabled = false
+	t.Run("InvalidateUserSessions INCR error", func(t *testing.T) {
+		originalClient := cache.RedisClient
+		cache.RedisClient.Close()
+
+		err := sm.InvalidateUserSessions("any", "")
+		assert.Error(t, err)
+
+		cache.RedisClient = originalClient
+		cache.ConnectRedis()
 	})
 }
 
@@ -150,7 +162,7 @@ func TestSessionManager_SessionVersion(t *testing.T) {
 	userId := "ver-test-user"
 
 	t.Run("GetSessionVersion returns error when key not set", func(t *testing.T) {
-		cache.RedisClient.Del(ctx, fmt.Sprintf("session:ver:%s", userId))
+		cache.RedisClient.Del(ctx, fmt.Sprintf(sessionVersionKeyFormat, userId))
 		_, err := sm.GetSessionVersion(ctx, userId)
 		assert.Error(t, err)
 	})
@@ -165,7 +177,7 @@ func TestSessionManager_SessionVersion(t *testing.T) {
 	})
 
 	t.Run("InvalidateUserSessions bumps version", func(t *testing.T) {
-		cache.RedisClient.Del(ctx, fmt.Sprintf("session:ver:%s", userId))
+		cache.RedisClient.Del(ctx, fmt.Sprintf(sessionVersionKeyFormat, userId))
 		sm.InvalidateUserSessions(userId, "")
 		ver, err := sm.GetSessionVersion(ctx, userId)
 		assert.NoError(t, err)

@@ -68,6 +68,8 @@ func TestPasswordHashing(t *testing.T) {
 		assert.False(t, CheckPasswordHash(password, "$argon2id$v=19$invalid$salt$hash"))
 		assert.False(t, CheckPasswordHash(password, "$argon2id$v=19$m=1,t=1,p=1$!!!$hash"))
 		assert.False(t, CheckPasswordHash(password, "$argon2id$v=19$m=1,t=1,p=1$c2FsdA==$!!!"))
+		assert.False(t, CheckPasswordHash(password, "$argon2id$v=19$m=1,t=1,p=1$c2FsdA$abc12345"))
+		assert.False(t, CheckPasswordHash(password, "$argon2id$v=19$m=1,t=1,p=1$c2FsdA$!!!"))
 
 		// Five parts instead of six
 		assert.False(t, CheckPasswordHash(password, "$argon2id$v=19$m=1,t=1,p=1"))

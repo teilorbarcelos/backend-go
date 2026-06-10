@@ -1,2423 +1,2066 @@
 {
-    "components": {
-        "schemas": {
-            "backend-go_internal_core_models.Feature": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deleted_at": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_deleted": {
-                        "type": "boolean"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "backend-go_internal_core_models.Product": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "category": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deleted_at": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "id_user": {
-                        "type": "string"
-                    },
-                    "is_deleted": {
-                        "type": "boolean"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "price": {
-                        "type": "number"
-                    },
-                    "sku": {
-                        "type": "string"
-                    },
-                    "stock": {
-                        "type": "integer"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "user": {
-                        "$ref": "#/components/schemas/backend-go_internal_core_models.User"
-                    }
-                },
-                "type": "object"
-            },
-            "backend-go_internal_core_models.Role": {
-                "properties": {
-                    "RoleFeature": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.RoleFeature"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deleted_at": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_deleted": {
-                        "type": "boolean"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "backend-go_internal_core_models.RoleFeature": {
-                "properties": {
-                    "activate": {
-                        "type": "boolean"
-                    },
-                    "create": {
-                        "type": "boolean"
-                    },
-                    "delete": {
-                        "type": "boolean"
-                    },
-                    "id_feature": {
-                        "type": "string"
-                    },
-                    "id_role": {
-                        "type": "string"
-                    },
-                    "view": {
-                        "type": "boolean"
-                    }
-                },
-                "type": "object"
-            },
-            "backend-go_internal_core_models.User": {
-                "properties": {
-                    "Role": {
-                        "$ref": "#/components/schemas/backend-go_internal_core_models.Role"
-                    },
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "cognito_id": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deleted_at": {
-                        "type": "string"
-                    },
-                    "document": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "id_auth": {
-                        "type": "string"
-                    },
-                    "id_role": {
-                        "type": "string"
-                    },
-                    "is_deleted": {
-                        "type": "boolean"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "phone": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_auth.ForgotPasswordRequest": {
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "email"
-                ],
-                "type": "object"
-            },
-            "internal_app_auth.LoginRequest": {
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "email",
-                    "password"
-                ],
-                "type": "object"
-            },
-            "internal_app_auth.LoginResponse": {
-                "properties": {
-                    "message": {
-                        "type": "string"
-                    },
-                    "refreshToken": {
-                        "type": "string"
-                    },
-                    "token": {
-                        "type": "string"
-                    },
-                    "user": {
-                        "$ref": "#/components/schemas/internal_app_auth.UserResponse"
-                    },
-                    "valid": {
-                        "type": "boolean"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_auth.RefreshRequest": {
-                "properties": {
-                    "refreshToken": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "refreshToken"
-                ],
-                "type": "object"
-            },
-            "internal_app_auth.ResetPasswordRequest": {
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "type": "string"
-                    },
-                    "token": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "email",
-                    "password",
-                    "token"
-                ],
-                "type": "object"
-            },
-            "internal_app_auth.UserResponse": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "document": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "id_role": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "phone": {
-                        "type": "string"
-                    },
-                    "role": {},
-                    "updated_at": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_auth.ValidateTokenRequest": {
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "token": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "email",
-                    "token"
-                ],
-                "type": "object"
-            },
-            "internal_app_product.CreateProductDTO": {
-                "properties": {
-                    "category": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "price": {
-                        "type": "number"
-                    },
-                    "sku": {
-                        "type": "string"
-                    },
-                    "stock": {
-                        "type": "integer"
-                    }
-                },
-                "required": [
-                    "category",
-                    "name",
-                    "price",
-                    "sku"
-                ],
-                "type": "object"
-            },
-            "internal_app_product.ProductListAllResponse": {
-                "properties": {
-                    "items": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.Product"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_product.ProductListResponse": {
-                "properties": {
-                    "items": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.Product"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_product.UpdateStatusRequest": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_role.CreateRoleDTO": {
-                "properties": {
-                    "description": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "permissions": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.RoleFeature"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    }
-                },
-                "required": [
-                    "description",
-                    "name"
-                ],
-                "type": "object"
-            },
-            "internal_app_role.RoleListAllResponse": {
-                "properties": {
-                    "items": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.Role"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_role.RoleListResponse": {
-                "properties": {
-                    "items": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.Role"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_role.UpdateStatusRequest": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_user.CreateUserDTO": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "id_role": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "email",
-                    "id_role",
-                    "name",
-                    "password"
-                ],
-                "type": "object"
-            },
-            "internal_app_user.UpdateStatusRequest": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_user.UpdateUserDTO": {
-                "properties": {
-                    "active": {
-                        "type": "boolean"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "id_role": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_user.UserListAllResponse": {
-                "properties": {
-                    "items": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.User"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "internal_app_user.UserListResponse": {
-                "properties": {
-                    "items": {
-                        "items": {
-                            "$ref": "#/components/schemas/backend-go_internal_core_models.User"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            }
-        },
-        "securitySchemes": {
-            "Bearer": {
-                "in": "header",
-                "name": "Authorization",
-                "type": "apiKey"
-            }
-        }
-    },
+    "swagger": "2.0",
     "info": {
-        "contact": {
-            "email": "suporte@swagger.io",
-            "name": "Suporte API",
-            "url": "http://www.swagger.io/support"
-        },
         "description": "API modular em Go com Gin e Swagger.",
+        "title": "Backend Go API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Suporte API",
+            "url": "http://www.swagger.io/support",
+            "email": "suporte@swagger.io"
+        },
         "license": {
             "name": "Apache 2.0",
             "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
         },
-        "termsOfService": "http://swagger.io/terms/",
-        "title": "Backend Go API",
         "version": "1.0"
     },
-    "externalDocs": {
-        "description": "",
-        "url": ""
-    },
+    "host": "localhost:8888",
+    "basePath": "/v1",
     "paths": {
         "/auth/login": {
             "post": {
                 "description": "Autentica o usuário com email e senha, retornando tokens JWT e dados do usuário.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_auth.LoginRequest",
-                                        "summary": "request",
-                                        "description": "Credenciais de acesso"
-                                    }
-                                ]
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Realizar Login",
+                "parameters": [
+                    {
+                        "description": "Credenciais de acesso",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "description": "Credenciais de acesso",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_auth.LoginResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Dados inválidos"
-                    },
                     "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Credenciais inválidas",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Credenciais inválidas"
+                        }
                     }
-                },
-                "summary": "Realizar Login",
-                "tags": [
-                    "Auth"
-                ]
+                }
             }
         },
         "/auth/me": {
             "get": {
-                "description": "Retorna informações do usuário logado baseado no token JWT.",
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_auth.LoginResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Não autorizado"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Obter dados do usuário atual",
+                "description": "Retorna informações do usuário logado baseado no token JWT.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Auth"
-                ]
+                ],
+                "summary": "Obter dados do usuário atual",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.LoginResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/auth/password/change": {
             "post": {
                 "description": "Altera a senha do usuário utilizando o código de validação.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_auth.ResetPasswordRequest",
-                                        "summary": "request",
-                                        "description": "Novos dados de senha"
-                                    }
-                                ]
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Redefinir senha",
+                "parameters": [
+                    {
+                        "description": "Novos dados de senha",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: senha alterada com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "description": "Novos dados de senha",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: senha alterada com sucesso"
-                    },
                     "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Token inválido ou expirado"
+                        }
                     }
-                },
-                "summary": "Redefinir senha",
-                "tags": [
-                    "Auth"
-                ]
+                }
             }
         },
         "/auth/password/request": {
             "post": {
                 "description": "Envia um e-mail com um código de 6 dígitos para o usuário.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_auth.ForgotPasswordRequest",
-                                        "summary": "request",
-                                        "description": "Email do usuário"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Email do usuário",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: e-mail de recuperação enviado se o usuário existir"
-                    }
-                },
-                "summary": "Solicitar recuperação de senha",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Auth"
-                ]
+                ],
+                "summary": "Solicitar recuperação de senha",
+                "parameters": [
+                    {
+                        "description": "Email do usuário",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: e-mail de recuperação enviado se o usuário existir",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/auth/password/validate": {
             "post": {
                 "description": "Verifica se o código de 6 dígitos é válido e não expirou.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_auth.ValidateTokenRequest",
-                                        "summary": "request",
-                                        "description": "Dados de validação"
-                                    }
-                                ]
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Validar código de recuperação",
+                "parameters": [
+                    {
+                        "description": "Dados de validação",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.ValidateTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "valid: true",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
                             }
                         }
                     },
-                    "description": "Dados de validação",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "boolean"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "valid: true"
-                    },
                     "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Token inválido ou expirado"
+                        }
                     }
-                },
-                "summary": "Validar código de recuperação",
-                "tags": [
-                    "Auth"
-                ]
+                }
             }
         },
         "/auth/refresh": {
             "post": {
                 "description": "Gera um novo access token a partir de um refresh token válido.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_auth.RefreshRequest",
-                                        "summary": "request",
-                                        "description": "Refresh token"
-                                    }
-                                ]
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Renovar token",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.RefreshRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_auth.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "description": "Refresh token",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_auth.LoginResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Dados inválidos"
-                    },
                     "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Refresh token inválido ou expirado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Refresh token inválido ou expirado"
+                        }
                     }
-                },
-                "summary": "Renovar token",
-                "tags": [
-                    "Auth"
-                ]
+                }
             }
         },
         "/product": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Retorna produtos com paginação e filtros.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Listar Produtos",
                 "parameters": [
                     {
+                        "type": "integer",
                         "description": "Número da página (padrão: 1)",
-                        "in": "query",
                         "name": "page",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "integer",
                         "description": "Itens por página (padrão: 25)",
-                        "in": "query",
                         "name": "size",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Termo de busca",
-                        "in": "query",
                         "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Campos para busca (ex: name,sku,category)",
-                        "in": "query",
                         "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Campo para ordenação",
-                        "in": "query",
                         "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Direção da ordenação (asc/desc)",
-                        "in": "query",
                         "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_product.ProductListResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_product.ProductListResponse"
+                        }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Produtos",
+                "description": "Cria um novo produto com os dados fornecidos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Product"
-                ]
-            },
-            "post": {
-                "description": "Cria um novo produto com os dados fornecidos.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_product.CreateProductDTO",
-                                        "summary": "request",
-                                        "description": "Dados do produto"
-                                    }
-                                ]
+                ],
+                "summary": "Criar Produto",
+                "parameters": [
+                    {
+                        "description": "Dados do produto",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_product.CreateProductDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "description": "Dados do produto",
-                    "required": true
-                },
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.Product"
-                                }
-                            }
-                        },
-                        "description": "Created"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Dados inválidos"
-                    },
                     "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Erro interno"
+                        }
                     }
-                },
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "summary": "Criar Produto",
-                "tags": [
-                    "Product"
-                ]
+                }
             }
         },
         "/product/all": {
             "get": {
-                "description": "Retorna todos os produtos (usado para selects/lookups).",
-                "parameters": [
-                    {
-                        "description": "Termo de busca",
-                        "in": "query",
-                        "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campos para busca",
-                        "in": "query",
-                        "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campo para ordenação",
-                        "in": "query",
-                        "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Direção da ordenação",
-                        "in": "query",
-                        "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_product.ProductListAllResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Todos os Produtos",
+                "description": "Retorna todos os produtos (usado para selects/lookups).",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Product"
-                ]
+                ],
+                "summary": "Listar Todos os Produtos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo de busca",
+                        "name": "searchWord",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campos para busca",
+                        "name": "searchFields",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo para ordenação",
+                        "name": "orderBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Direção da ordenação",
+                        "name": "orderDirection",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_product.ProductListAllResponse"
+                        }
+                    }
+                }
             }
         },
         "/product/{id}": {
-            "delete": {
-                "description": "Remove um produto logicamente ou fisicamente baseado no ID.",
-                "parameters": [
-                    {
-                        "description": "ID do Produto",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: produto excluído com sucesso"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
+            "get": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Excluir Produto",
+                "description": "Retorna os detalhes de um produto específico.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Product"
-                ]
-            },
-            "get": {
-                "description": "Retorna os detalhes de um produto específico.",
-                "parameters": [
-                    {
-                        "description": "ID do Produto",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.Product"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Produto não encontrado"
-                    }
-                },
-                "security": [
-                    {
-                        "Bearer": []
-                    }
                 ],
                 "summary": "Obter Produto",
-                "tags": [
-                    "Product"
-                ]
-            },
-            "put": {
-                "description": "Atualiza parcialmente um produto baseado no ID.",
                 "parameters": [
                     {
+                        "type": "string",
                         "description": "ID do Produto",
-                        "in": "path",
                         "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "path",
+                        "required": true
                     }
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "additionalProperties": {},
-                                        "title": "request",
-                                        "type": "object"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Campos a serem atualizados",
-                    "required": true
-                },
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.Product"
-                                }
-                            }
-                        },
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.Product"
+                        }
                     },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                    "404": {
+                        "description": "Produto não encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Dados inválidos"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
+                        }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Atualizar Produto",
+                "description": "Atualiza parcialmente um produto baseado no ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Product"
-                ]
+                ],
+                "summary": "Atualizar Produto",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Produto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campos a serem atualizados",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Remove um produto logicamente ou fisicamente baseado no ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Excluir Produto",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Produto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: produto excluído com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/product/{id}/status": {
             "patch": {
-                "description": "Define se um produto está ativo ou inativo.",
-                "parameters": [
-                    {
-                        "description": "ID do Produto",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_product.UpdateStatusRequest",
-                                        "summary": "request",
-                                        "description": "Novo status"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Novo status",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: status atualizado com sucesso"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Alterar Status do Produto",
+                "description": "Define se um produto está ativo ou inativo.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Product"
-                ]
+                ],
+                "summary": "Alterar Status do Produto",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Produto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Novo status",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_product.UpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: status atualizado com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/role": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Retorna papéis com paginação e filtros.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Role"
+                ],
+                "summary": "Listar Papéis (Roles)",
                 "parameters": [
                     {
+                        "type": "integer",
                         "description": "Número da página (padrão: 1)",
-                        "in": "query",
                         "name": "page",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "integer",
                         "description": "Itens por página (padrão: 25)",
-                        "in": "query",
                         "name": "size",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Termo de busca",
-                        "in": "query",
                         "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Campos para busca (ex: name)",
-                        "in": "query",
                         "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Campo para ordenação",
-                        "in": "query",
                         "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Direção da ordenação (asc/desc)",
-                        "in": "query",
                         "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_role.RoleListResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_role.RoleListResponse"
+                        }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Papéis (Roles)",
+                "description": "Cria um novo papel com permissões específicas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
-                ]
-            },
-            "post": {
-                "description": "Cria um novo papel com permissões específicas.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_role.CreateRoleDTO",
-                                        "summary": "request",
-                                        "description": "Dados do papel"
-                                    }
-                                ]
+                ],
+                "summary": "Criar Papel (Role)",
+                "parameters": [
+                    {
+                        "description": "Dados do papel",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_role.CreateRoleDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.Role"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "description": "Dados do papel",
-                    "required": true
-                },
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.Role"
-                                }
-                            }
-                        },
-                        "description": "Created"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Dados inválidos"
-                    },
                     "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Erro interno"
+                        }
                     }
-                },
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "summary": "Criar Papel (Role)",
-                "tags": [
-                    "Role"
-                ]
+                }
             }
         },
         "/role/all": {
             "get": {
-                "description": "Retorna todos os papéis (usado para selects/lookups).",
-                "parameters": [
-                    {
-                        "description": "Termo de busca",
-                        "in": "query",
-                        "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campos para busca",
-                        "in": "query",
-                        "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campo para ordenação",
-                        "in": "query",
-                        "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Direção da ordenação",
-                        "in": "query",
-                        "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_role.RoleListAllResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Todos os Papéis (Roles)",
+                "description": "Retorna todos os papéis (usado para selects/lookups).",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
-                ]
+                ],
+                "summary": "Listar Todos os Papéis (Roles)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo de busca",
+                        "name": "searchWord",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campos para busca",
+                        "name": "searchFields",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo para ordenação",
+                        "name": "orderBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Direção da ordenação",
+                        "name": "orderDirection",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_role.RoleListAllResponse"
+                        }
+                    }
+                }
             }
         },
         "/role/features": {
             "get": {
-                "description": "Retorna a lista de todas as funcionalidades disponíveis para atribuição de permissões.",
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "items": {
-                                        "$ref": "#/components/schemas/backend-go_internal_core_models.Feature"
-                                    },
-                                    "type": "array"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Funcionalidades",
+                "description": "Retorna a lista de todas as funcionalidades disponíveis para atribuição de permissões.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
-                ]
+                ],
+                "summary": "Listar Funcionalidades",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-go_internal_core_models.Feature"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/role/{id}": {
-            "delete": {
-                "description": "Remove um papel baseado no ID.",
-                "parameters": [
-                    {
-                        "description": "ID do Papel",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: papel excluído com sucesso"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
+            "get": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Excluir Papel (Role)",
+                "description": "Retorna os detalhes de um papel e suas permissões.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
-                ]
-            },
-            "get": {
-                "description": "Retorna os detalhes de um papel e suas permissões.",
-                "parameters": [
-                    {
-                        "description": "ID do Papel",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.Role"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Papel não encontrado"
-                    }
-                },
-                "security": [
-                    {
-                        "Bearer": []
-                    }
                 ],
                 "summary": "Obter Papel (Role)",
-                "tags": [
-                    "Role"
-                ]
-            },
-            "put": {
-                "description": "Atualiza os dados e permissões de um papel baseado no ID.",
                 "parameters": [
                     {
+                        "type": "string",
                         "description": "ID do Papel",
-                        "in": "path",
                         "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "path",
+                        "required": true
                     }
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_role.CreateRoleDTO",
-                                        "summary": "request",
-                                        "description": "Dados do papel"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Dados do papel",
-                    "required": true
-                },
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.Role"
-                                }
-                            }
-                        },
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.Role"
+                        }
                     },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                    "404": {
+                        "description": "Papel não encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Dados inválidos"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
+                        }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Atualizar Papel (Role)",
+                "description": "Atualiza os dados e permissões de um papel baseado no ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
-                ]
+                ],
+                "summary": "Atualizar Papel (Role)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Papel",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Dados do papel",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_role.CreateRoleDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.Role"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Remove um papel baseado no ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Role"
+                ],
+                "summary": "Excluir Papel (Role)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Papel",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: papel excluído com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/role/{id}/status": {
             "patch": {
-                "description": "Define se um papel está ativo ou inativo.",
-                "parameters": [
-                    {
-                        "description": "ID do Papel",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_role.UpdateStatusRequest",
-                                        "summary": "request",
-                                        "description": "Novo status"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Novo status",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: status atualizado com sucesso"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Alterar Status do Papel (Role)",
+                "description": "Define se um papel está ativo ou inativo.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Role"
-                ]
+                ],
+                "summary": "Alterar Status do Papel (Role)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Papel",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Novo status",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_role.UpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: status atualizado com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/user": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Retorna usuários com paginação e filtros.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Listar Usuários",
                 "parameters": [
                     {
+                        "type": "integer",
                         "description": "Número da página (padrão: 1)",
-                        "in": "query",
                         "name": "page",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "integer",
                         "description": "Itens por página (padrão: 25)",
-                        "in": "query",
                         "name": "size",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Termo de busca",
-                        "in": "query",
                         "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Campos para busca (ex: name,email,Role.name)",
-                        "in": "query",
                         "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Campo para ordenação",
-                        "in": "query",
                         "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     },
                     {
+                        "type": "string",
                         "description": "Direção da ordenação (asc/desc)",
-                        "in": "query",
                         "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_user.UserListResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_user.UserListResponse"
+                        }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Usuários",
+                "description": "Cria um novo usuário com os dados fornecidos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "User"
-                ]
-            },
-            "post": {
-                "description": "Cria um novo usuário com os dados fornecidos.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_user.CreateUserDTO",
-                                        "summary": "request",
-                                        "description": "Dados do usuário"
-                                    }
-                                ]
+                ],
+                "summary": "Criar Usuário",
+                "parameters": [
+                    {
+                        "description": "Dados do usuário",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_user.CreateUserDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "description": "Dados do usuário",
-                    "required": true
-                },
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.User"
-                                }
-                            }
-                        },
-                        "description": "Created"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Dados inválidos"
-                    },
                     "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Erro interno"
+                        }
                     }
-                },
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "summary": "Criar Usuário",
-                "tags": [
-                    "User"
-                ]
+                }
             }
         },
         "/user/all": {
             "get": {
-                "description": "Retorna todos os usuários (usado para selects/lookups).",
-                "parameters": [
-                    {
-                        "description": "Termo de busca",
-                        "in": "query",
-                        "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campos para busca",
-                        "in": "query",
-                        "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campo para ordenação",
-                        "in": "query",
-                        "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Direção da ordenação",
-                        "in": "query",
-                        "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/internal_app_user.UserListAllResponse"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Listar Todos os Usuários",
+                "description": "Retorna todos os usuários (usado para selects/lookups).",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "User"
-                ]
+                ],
+                "summary": "Listar Todos os Usuários",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo de busca",
+                        "name": "searchWord",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campos para busca",
+                        "name": "searchFields",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo para ordenação",
+                        "name": "orderBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Direção da ordenação",
+                        "name": "orderDirection",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_user.UserListAllResponse"
+                        }
+                    }
+                }
             }
         },
         "/user/export/pdf": {
             "get": {
-                "description": "Exporta a lista filtrada de usuários para um arquivo PDF.",
-                "parameters": [
-                    {
-                        "description": "Termo de busca",
-                        "in": "query",
-                        "name": "searchWord",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campos para busca",
-                        "in": "query",
-                        "name": "searchFields",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Campo para ordenação",
-                        "in": "query",
-                        "name": "orderBy",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Direção da ordenação",
-                        "in": "query",
-                        "name": "orderDirection",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/pdf": {
-                                "schema": {
-                                    "type": "file"
-                                }
-                            }
-                        },
-                        "description": "PDF file"
-                    },
-                    "400": {
-                        "content": {
-                            "application/pdf": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Dados inválidos"
-                    },
-                    "500": {
-                        "content": {
-                            "application/pdf": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Exportar Usuários para PDF",
+                "description": "Exporta a lista filtrada de usuários para um arquivo PDF.",
+                "produces": [
+                    "application/pdf"
+                ],
                 "tags": [
                     "User"
-                ]
+                ],
+                "summary": "Exportar Usuários para PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo de busca",
+                        "name": "searchWord",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campos para busca",
+                        "name": "searchFields",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Campo para ordenação",
+                        "name": "orderBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Direção da ordenação",
+                        "name": "orderDirection",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PDF file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/user/{id}": {
-            "delete": {
-                "description": "Remove um usuário logicamente baseado no ID.",
-                "parameters": [
-                    {
-                        "description": "ID do Usuário",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: usuário excluído com sucesso"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
+            "get": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Excluir Usuário",
+                "description": "Retorna os detalhes de um usuário específico.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "User"
-                ]
-            },
-            "get": {
-                "description": "Retorna os detalhes de um usuário específico.",
-                "parameters": [
-                    {
-                        "description": "ID do Usuário",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.User"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Usuário não encontrado"
-                    }
-                },
-                "security": [
-                    {
-                        "Bearer": []
-                    }
                 ],
                 "summary": "Obter Usuário",
-                "tags": [
-                    "User"
-                ]
-            },
-            "put": {
-                "description": "Atualiza os dados de um usuário baseado no ID.",
                 "parameters": [
                     {
+                        "type": "string",
                         "description": "ID do Usuário",
-                        "in": "path",
                         "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "path",
+                        "required": true
                     }
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_user.UpdateUserDTO",
-                                        "summary": "request",
-                                        "description": "Campos a serem atualizados"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Campos a serem atualizados",
-                    "required": true
-                },
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/backend-go_internal_core_models.User"
-                                }
-                            }
-                        },
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.User"
+                        }
                     },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
+                    "404": {
+                        "description": "Usuário não encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
-                        },
-                        "description": "Dados inválidos"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
+                        }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Atualizar Usuário",
+                "description": "Atualiza os dados de um usuário baseado no ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "User"
-                ]
+                ],
+                "summary": "Atualizar Usuário",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Usuário",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campos a serem atualizados",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_user.UpdateUserDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-go_internal_core_models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Remove um usuário logicamente baseado no ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Excluir Usuário",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Usuário",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: usuário excluído com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/user/{id}/status": {
             "patch": {
-                "description": "Define se um usuário está ativo ou inativo.",
-                "parameters": [
-                    {
-                        "description": "ID do Usuário",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/internal_app_user.UpdateStatusRequest",
-                                        "summary": "request",
-                                        "description": "Novo status"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Novo status",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "message: status atualizado com sucesso"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Erro interno"
-                    }
-                },
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "summary": "Alterar Status do Usuário",
+                "description": "Define se um usuário está ativo ou inativo.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "User"
-                ]
+                ],
+                "summary": "Alterar Status do Usuário",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do Usuário",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Novo status",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_app_user.UpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: status atualizado com sucesso",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         }
     },
-    "openapi": "3.1.0",
-    "servers": [
-        {
-            "url": "localhost:8888/v1"
+    "definitions": {
+        "backend-go_internal_core_models.Feature": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-go_internal_core_models.Product": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "id_user": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/backend-go_internal_core_models.User"
+                }
+            }
+        },
+        "backend-go_internal_core_models.Role": {
+            "type": "object",
+            "properties": {
+                "RoleFeature": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.RoleFeature"
+                    }
+                },
+                "active": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-go_internal_core_models.RoleFeature": {
+            "type": "object",
+            "properties": {
+                "activate": {
+                    "type": "boolean"
+                },
+                "create": {
+                    "type": "boolean"
+                },
+                "delete": {
+                    "type": "boolean"
+                },
+                "id_feature": {
+                    "type": "string"
+                },
+                "id_role": {
+                    "type": "string"
+                },
+                "view": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "backend-go_internal_core_models.User": {
+            "type": "object",
+            "properties": {
+                "Role": {
+                    "$ref": "#/definitions/backend-go_internal_core_models.Role"
+                },
+                "active": {
+                    "type": "boolean"
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "cognito_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "id_auth": {
+                    "type": "string"
+                },
+                "id_role": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_app_auth.UserResponse"
+                },
+                "valid": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_app_auth.RefreshRequest": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.UserResponse": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "id_role": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {},
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_auth.ValidateTokenRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_product.CreateProductDTO": {
+            "type": "object",
+            "required": [
+                "category",
+                "name",
+                "price",
+                "sku"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_app_product.ProductListAllResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.Product"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_app_product.ProductListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.Product"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_app_product.UpdateStatusRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_app_role.CreateRoleDTO": {
+            "type": "object",
+            "required": [
+                "description",
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.RoleFeature"
+                    }
+                }
+            }
+        },
+        "internal_app_role.RoleListAllResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.Role"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_app_role.RoleListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.Role"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_app_role.UpdateStatusRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_app_user.CreateUserDTO": {
+            "type": "object",
+            "required": [
+                "email",
+                "id_role",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id_role": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_user.UpdateStatusRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_app_user.UpdateUserDTO": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id_role": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_app_user.UserListAllResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.User"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_app_user.UserListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-go_internal_core_models.User"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
         }
-    ]
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
 }

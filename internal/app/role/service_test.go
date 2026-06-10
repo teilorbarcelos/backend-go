@@ -182,4 +182,39 @@ func TestRoleService_SetStatus(t *testing.T) {
 		err := service.SetStatus(ctx, "1", false)
 		assert.Error(t, err)
 	})
+
+	t.Run("BulkIncrementSessionVersion Error", func(t *testing.T) {
+		mockRepo := new(MockRoleRepository)
+		service := NewRoleService(mockRepo, sessionMgr)
+		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("BulkIncrementSessionVersion", mock.Anything, "1").Return(errors.New("bulk err")).Once()
+
+		err := service.SetStatus(ctx, "1", false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("FindUserIDsByRole Error", func(t *testing.T) {
+		mockRepo := new(MockRoleRepository)
+		service := NewRoleService(mockRepo, sessionMgr)
+		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("BulkIncrementSessionVersion", mock.Anything, "1").Return(nil).Once()
+		mockRepo.On("FindUserIDsByRole", mock.Anything, "1").Return([]string{}, errors.New("find err")).Once()
+
+		err := service.SetStatus(ctx, "1", false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("InvalidateUserSessions Error", func(t *testing.T) {
+		mockRepo := new(MockRoleRepository)
+		service := NewRoleService(mockRepo, sessionMgr)
+		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("BulkIncrementSessionVersion", mock.Anything, "1").Return(nil).Once()
+		mockRepo.On("FindUserIDsByRole", mock.Anything, "1").Return([]string{"redis-down-user"}, nil).Once()
+
+		err := service.SetStatus(ctx, "1", false)
+		assert.NoError(t, err)
+	})
 }

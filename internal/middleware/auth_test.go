@@ -62,7 +62,7 @@ func TestAuthenticate(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
 	// 4. Token Válido com session version diferente
-	versionKey := fmt.Sprintf("session:ver:%s", "user-123")
+	versionKey := fmt.Sprintf(middlewareSessionVerKey, "user-123")
 	cache.RedisClient.Set(ctxBg, versionKey, sessionVersion+1, 0)
 	defer cache.RedisClient.Del(ctxBg, versionKey)
 

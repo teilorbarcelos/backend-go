@@ -86,6 +86,7 @@ func (s *RoleService) Delete(ctx context.Context, id string) error {
 func (s *RoleService) bulkBumpSessionVersion(ctx context.Context, roleID string) {
 	if err := s.Repo.WithContext(ctx).BulkIncrementSessionVersion(ctx, roleID); err != nil {
 		logger.Warn("failed to bulk bump session version for role", zap.String("roleID", roleID), zap.Error(err))
+		return
 	}
 
 	userIDs, err := s.Repo.WithContext(ctx).FindUserIDsByRole(ctx, roleID)

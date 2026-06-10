@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"backend-go/pkg/cache"
-	"backend-go/pkg/security"
+		"backend-go/pkg/security"
 
 	"github.com/gin-gonic/gin"
 )
+
+const middlewareSessionVerKey = "session:ver:%s"
 
 func Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -36,7 +38,7 @@ func Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf("session:ver:%s", claims.UserID)).Int()
+		storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf(middlewareSessionVerKey, claims.UserID)).Int()
 		if err != nil || storedVersion != claims.SessionVersion {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
