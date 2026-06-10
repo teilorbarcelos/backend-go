@@ -20,6 +20,10 @@ type Config struct {
 	FirstUserPassword string `mapstructure:"FIRST_PASSWORD"`
 	LogLevel          string `mapstructure:"LOG_LEVEL"`
 	PdfServiceUrl     string `mapstructure:"PDF_SERVICE_URL"`
+	DBMaxOpenConns    int    `mapstructure:"DB_MAX_OPEN_CONNS"`
+	DBMaxIdleConns    int    `mapstructure:"DB_MAX_IDLE_CONNS"`
+	DBConnMaxLifetime string `mapstructure:"DB_CONN_MAX_LIFETIME"`
+	DBConnMaxIdleTime string `mapstructure:"DB_CONN_MAX_IDLE_TIME"`
 }
 
 var AppConfig Config
@@ -43,6 +47,10 @@ func LoadConfig() {
 	viper.SetDefault("FIRST_USER", "admin@email.com")
 	viper.SetDefault("FIRST_PASSWORD", "admin@123") // NOSONAR
 	viper.SetDefault("PDF_SERVICE_URL", "http://localhost:8889")
+	viper.SetDefault("DB_MAX_OPEN_CONNS", 50)
+	viper.SetDefault("DB_MAX_IDLE_CONNS", 10)
+	viper.SetDefault("DB_CONN_MAX_LIFETIME", "30m")
+	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "5m")
 
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Log.Sugar().Warnf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)

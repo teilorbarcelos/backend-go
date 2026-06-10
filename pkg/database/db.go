@@ -58,10 +58,15 @@ func ConnectDB() {
 
 	sqlDB, err := DB.DB()
 	if err == nil {
-		sqlDB.SetMaxOpenConns(50)
-		sqlDB.SetMaxIdleConns(10)
-		sqlDB.SetConnMaxLifetime(30 * time.Minute)
-		sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+		sqlDB.SetMaxOpenConns(config.AppConfig.DBMaxOpenConns)
+		sqlDB.SetMaxIdleConns(config.AppConfig.DBMaxIdleConns)
+
+		if lifetime, err := time.ParseDuration(config.AppConfig.DBConnMaxLifetime); err == nil {
+			sqlDB.SetConnMaxLifetime(lifetime)
+		}
+		if idleTime, err := time.ParseDuration(config.AppConfig.DBConnMaxIdleTime); err == nil {
+			sqlDB.SetConnMaxIdleTime(idleTime)
+		}
 	}
 
 	if config.AppConfig.Environment == "production" {
