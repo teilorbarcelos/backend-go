@@ -82,6 +82,9 @@ func main() {
 
 	if config.AppConfig.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
+		if len(config.AppConfig.JWTSecret) < 32 {
+			logger.Log.Sugar().Fatalf("JWT_SECRET deve ter no mínimo 32 caracteres em produção")
+		}
 	}
 	database.ConnectDB()
 	audit.RegisterAuditHooks(database.DB)
