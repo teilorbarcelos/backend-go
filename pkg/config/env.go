@@ -20,10 +20,12 @@ type Config struct {
 	FirstUserPassword string `mapstructure:"FIRST_PASSWORD"`
 	LogLevel          string `mapstructure:"LOG_LEVEL"`
 	PdfServiceUrl     string `mapstructure:"PDF_SERVICE_URL"`
-	DBMaxOpenConns    int    `mapstructure:"DB_MAX_OPEN_CONNS"`
-	DBMaxIdleConns    int    `mapstructure:"DB_MAX_IDLE_CONNS"`
-	DBConnMaxLifetime string `mapstructure:"DB_CONN_MAX_LIFETIME"`
-	DBConnMaxIdleTime string `mapstructure:"DB_CONN_MAX_IDLE_TIME"`
+	DBMaxOpenConns       int    `mapstructure:"DB_MAX_OPEN_CONNS"`
+	DBMaxIdleConns       int    `mapstructure:"DB_MAX_IDLE_CONNS"`
+	DBConnMaxLifetime    string `mapstructure:"DB_CONN_MAX_LIFETIME"`
+	DBConnMaxIdleTime    string `mapstructure:"DB_CONN_MAX_IDLE_TIME"`
+	DBStatementTimeout   int    `mapstructure:"DB_STATEMENT_TIMEOUT"`
+	DBIdleInTxTimeout    int    `mapstructure:"DB_IDLE_IN_TX_TIMEOUT"`
 }
 
 var AppConfig Config
@@ -51,6 +53,8 @@ func LoadConfig() {
 	viper.SetDefault("DB_MAX_IDLE_CONNS", 10)
 	viper.SetDefault("DB_CONN_MAX_LIFETIME", "30m")
 	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "5m")
+	viper.SetDefault("DB_STATEMENT_TIMEOUT", 30000)
+	viper.SetDefault("DB_IDLE_IN_TX_TIMEOUT", 60000)
 
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Log.Sugar().Warnf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)

@@ -84,6 +84,21 @@ func TestConnectDB(t *testing.T) {
 		})
 	})
 
+	t.Run("Failure on pgx.ParseConfig", func(t *testing.T) {
+		config.AppConfig.Environment = "test"
+		origDBUrl := config.AppConfig.DBUrl
+		config.AppConfig.DBUrl = "invalid://%"
+		defer func() { config.AppConfig.DBUrl = origDBUrl }()
+
+		logFatalf = func(format string, v ...interface{}) {
+			panic("fatal: parse")
+		}
+
+		assert.PanicsWithValue(t, "fatal: parse", func() {
+			ConnectDB()
+		})
+	})
+
 	t.Run("Failure on AutoMigrate", func(t *testing.T) {
 		config.AppConfig.Environment = "test"
 		gormOpen = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {

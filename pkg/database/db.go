@@ -1,6 +1,7 @@
 package database
 
 import (
+	"strconv"
 	"time"
 
 	"backend-go/pkg/logger"
@@ -8,6 +9,8 @@ import (
 	"backend-go/internal/core/models"
 	"backend-go/pkg/config"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -50,23 +53,33 @@ func ConnectDB() {
 		gormConfig.Logger = gormlogger.Default.LogMode(gormlogger.Error)
 	}
 
-	DB, err = gormOpen(postgres.Open(config.AppConfig.DBUrl), gormConfig)
+	connConfig, err := pgx.ParseConfig(config.AppConfig.DBUrl)
+	if err != nil {
+		logFatalf("Falha ao parsear DSN: %v", err)
+	}
+	if config.AppConfig.DBStatementTimeout > 0 {
+		connConfig.RuntimeParams["statement_timeout"] = strconv.Itoa(config.AppConfig.DBStatementTimeout)
+	}
+	if config.AppConfig.DBIdleInTxTimeout > 0 {
+		connConfig.RuntimeParams["idle_in_transaction_session_timeout"] = strconv.Itoa(config.AppConfig.DBIdleInTxTimeout)
+	}
+
+	sqlDB := stdlib.OpenDB(*connConfig)
+	sqlDB.SetMaxOpenConns(config.AppConfig.DBMaxOpenConns)
+	sqlDB.SetMaxIdleConns(config.AppConfig.DBMaxIdleConns)
+	if lifetime, err := time.ParseDuration(config.AppConfig.DBConnMaxLifetime); err == nil {
+		sqlDB.SetConnMaxLifetime(lifetime)
+	}
+	if idleTime, err := time.ParseDuration(config.AppConfig.DBConnMaxIdleTime); err == nil {
+		sqlDB.SetConnMaxIdleTime(idleTime)
+	}
+
+	DB, err = gormOpen(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), gormConfig)
 
 	if err != nil {
 		logFatalf("Falha ao conectar no banco de dados: %v", err)
-	}
-
-	sqlDB, err := DB.DB()
-	if err == nil {
-		sqlDB.SetMaxOpenConns(config.AppConfig.DBMaxOpenConns)
-		sqlDB.SetMaxIdleConns(config.AppConfig.DBMaxIdleConns)
-
-		if lifetime, err := time.ParseDuration(config.AppConfig.DBConnMaxLifetime); err == nil {
-			sqlDB.SetConnMaxLifetime(lifetime)
-		}
-		if idleTime, err := time.ParseDuration(config.AppConfig.DBConnMaxIdleTime); err == nil {
-			sqlDB.SetConnMaxIdleTime(idleTime)
-		}
 	}
 
 	if config.AppConfig.Environment == "production" {
