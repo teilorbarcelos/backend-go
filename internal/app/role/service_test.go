@@ -64,6 +64,11 @@ func (m *MockRoleRepository) ListFeatures(ctx context.Context) ([]models.Feature
 	return args.Get(0).([]models.Feature), args.Error(1)
 }
 
+func (m *MockRoleRepository) BulkIncrementSessionVersion(ctx context.Context, roleID string) error {
+	args := m.Called(ctx, roleID)
+	return args.Error(0)
+}
+
 func TestRoleService_Create(t *testing.T) {
 	repo := NewRoleRepository(database.DB)
 	sessionMgr := session.NewSessionManager()

@@ -20,7 +20,7 @@ func TestJWT(t *testing.T) {
 	}
 
 	t.Run("Generate and Validate Token Success", func(t *testing.T) {
-		token, err := GenerateToken(userID, email, roleID, permissions)
+		token, err := GenerateToken(userID, email, roleID, permissions, 1)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, token)
 
@@ -30,6 +30,7 @@ func TestJWT(t *testing.T) {
 		assert.Equal(t, email, claims.Email)
 		assert.Equal(t, roleID, claims.RoleID)
 		assert.Equal(t, permissions, claims.Permissions)
+		assert.Equal(t, 1, claims.SessionVersion)
 	})
 
 	t.Run("Validate Token - Invalid Token String", func(t *testing.T) {
@@ -39,7 +40,7 @@ func TestJWT(t *testing.T) {
 	})
 
 	t.Run("Validate Token - Wrong Secret", func(t *testing.T) {
-		token, _ := GenerateToken(userID, email, roleID, permissions)
+		token, _ := GenerateToken(userID, email, roleID, permissions, 1)
 		
 		// Change secret temporarily
 		originalSecret := config.AppConfig.JWTSecret

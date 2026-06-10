@@ -58,6 +58,10 @@ func (m *MockUserRepository) UpdatePassword(authID string, password string) erro
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) IncrementSessionVersion(ctx context.Context, userID string) (int, error) {
+	args := m.Called(ctx, userID)
+	return args.Int(0), args.Error(1)
+}
 
 func (m *MockUserRepository) SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error) {
 	args := m.Called(params, filterable, searchable, preloads)

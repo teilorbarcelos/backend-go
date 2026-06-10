@@ -116,7 +116,7 @@ func TestAuthService_Login(t *testing.T) {
 
 	t.Run("Token Error", func(t *testing.T) {
 		oldGen := service.GenerateToken
-		service.GenerateToken = func(id, email, idRole string, perms []security.Permission) (string, error) {
+		service.GenerateToken = func(id, email, idRole string, perms []security.Permission, sessionVersion int) (string, error) {
 			return "", errors.New("token err")
 		}
 		defer func() { service.GenerateToken = oldGen }()
@@ -179,7 +179,7 @@ func TestAuthService_GetMe(t *testing.T) {
 	t.Run("Token Error", func(t *testing.T) {
 		svc := service.(*authService)
 		oldGen := svc.GenerateToken
-		svc.GenerateToken = func(id, email, idRole string, perms []security.Permission) (string, error) {
+		svc.GenerateToken = func(id, email, idRole string, perms []security.Permission, sessionVersion int) (string, error) {
 			return "", errors.New("token err")
 		}
 		defer func() { svc.GenerateToken = oldGen }()

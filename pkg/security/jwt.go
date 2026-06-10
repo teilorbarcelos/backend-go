@@ -17,29 +17,31 @@ type Permission struct {
 }
 
 type JWTClaims struct {
-	UserID      string       `json:"id"`
-	Email       string       `json:"email"`
-	RoleID      string       `json:"roleId"`
-	Permissions []Permission `json:"permissions,omitempty"`
+	UserID         string       `json:"id"`
+	Email          string       `json:"email"`
+	RoleID         string       `json:"roleId"`
+	SessionVersion int          `json:"sessionVersion"`
+	Permissions    []Permission `json:"permissions,omitempty"`
 	jwt.RegisteredClaims
 }
 
 var jwtParseWithClaims = jwt.ParseWithClaims
 
-func GenerateToken(userID, email, roleID string, permissions []Permission) (string, error) {
-	return GenerateTokenWithExpiration(userID, email, roleID, permissions, 24*time.Hour)
+func GenerateToken(userID, email, roleID string, permissions []Permission, sessionVersion int) (string, error) {
+	return generateToken(userID, email, roleID, permissions, sessionVersion, 24*time.Hour)
 }
 
 func GenerateRefreshToken(userID, email, roleID string) (string, error) {
-	return GenerateTokenWithExpiration(userID, email, roleID, nil, 7*24*time.Hour)
+	return generateToken(userID, email, roleID, nil, 0, 7*24*time.Hour)
 }
 
-func GenerateTokenWithExpiration(userID, email, roleID string, permissions []Permission, duration time.Duration) (string, error) {
+func generateToken(userID, email, roleID string, permissions []Permission, sessionVersion int, duration time.Duration) (string, error) {
 	claims := &JWTClaims{
-		UserID:      userID,
-		Email:       email,
-		RoleID:      roleID,
-		Permissions: permissions,
+		UserID:         userID,
+		Email:          email,
+		RoleID:         roleID,
+		SessionVersion: sessionVersion,
+		Permissions:    permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -15,9 +14,11 @@ import (
 	"backend-go/pkg/security"
 )
 
+var ctxBg = context.Background()
+
 func TestAuthenticate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	
+
 	config.LoadConfig()
 	if cache.RedisClient == nil {
 		cache.ConnectRedis()
@@ -29,6 +30,8 @@ func TestAuthenticate(t *testing.T) {
 		userID, _ := c.Get("userID")
 		c.JSON(http.StatusOK, gin.H{"userID": userID})
 	})
+
+	sessionVersion := 1
 
 	// 1. Sem header
 	req, _ := http.NewRequest("GET", "/protected", nil)
@@ -50,19 +53,28 @@ func TestAuthenticate(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	// 3. Token Válido mas sem sessão no Redis
-	token, _ := security.GenerateToken("user-123", "user@test.com", "role-admin", []security.Permission{{Feature: "user", View: true}})
+	// 3. Token Válido mas sem session version no Redis
+	token, _ := security.GenerateToken("user-123", "user@test.com", "role-admin", []security.Permission{{Feature: "user", View: true}}, sessionVersion)
 	req, _ = http.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	// 4. Token Válido com sessão no Redis
-	tokenHash := security.SHA256(token)
-	sessionKey := fmt.Sprintf("session:role:role-admin:user:user-123:access:%s", tokenHash)
-	cache.RedisClient.Set(context.Background(), sessionKey, "active", time.Minute)
-	defer cache.RedisClient.Del(context.Background(), sessionKey)
+	// 4. Token Válido com session version diferente
+	versionKey := fmt.Sprintf("session:ver:%s", "user-123")
+	cache.RedisClient.Set(ctxBg, versionKey, sessionVersion+1, 0)
+	defer cache.RedisClient.Del(ctxBg, versionKey)
+
+	token2, _ := security.GenerateToken("user-123", "user@test.com", "role-admin", []security.Permission{{Feature: "user", View: true}}, sessionVersion)
+	req, _ = http.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+token2)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	// 5. Token Válido com session version correta
+	cache.RedisClient.Set(ctxBg, versionKey, sessionVersion, 0)
 
 	req, _ = http.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

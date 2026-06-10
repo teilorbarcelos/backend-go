@@ -19,6 +19,7 @@ type RoleRepositoryI interface {
 	FindByID(id string, preloads ...string) (*models.Role, error)
 	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.Role, int64, error)
 	ListFeatures(ctx context.Context) ([]models.Feature, error)
+	BulkIncrementSessionVersion(ctx context.Context, roleID string) error
 }
 
 type RoleRepository struct {
@@ -86,4 +87,11 @@ func (r *RoleRepository) UpdateWithPermissions(id string, role *models.Role, per
 		}
 		return updatePermissions(tx, id, permissions)
 	})
+}
+
+func (r *RoleRepository) BulkIncrementSessionVersion(ctx context.Context, roleID string) error {
+	return r.DB.WithContext(ctx).Exec(
+		"UPDATE auth SET session_version = session_version + 1 WHERE id IN (SELECT id_auth FROM \"user\" WHERE id_role = ? AND is_deleted = false)",
+		roleID,
+	).Error
 }

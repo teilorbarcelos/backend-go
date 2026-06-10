@@ -15,6 +15,8 @@ type SessionStore interface {
 	CreateRefreshToken(ctx context.Context, userId string, roleId string, refreshTokenHash string, expiration time.Duration) error
 	InvalidateUserSessions(userId string, roleId string) error
 	InvalidateRoleSessions(roleId string) error
+	GetSessionVersion(ctx context.Context, userId string) (int, error)
+	SetSessionVersion(ctx context.Context, userId string, version int) error
 }
 
 type SessionManager struct{}
@@ -40,11 +42,8 @@ func (s *SessionManager) CreateRefreshToken(ctx context.Context, userId string, 
 
 func (s *SessionManager) InvalidateUserSessions(userId string, roleId string) error {
 	ctx := context.Background()
-	pattern := fmt.Sprintf("session:role:*:user:%s:*", userId)
-
-	log.Printf("[SessionManager] Invalidating sessions for user %s with pattern %s", userId, pattern)
-
-	return s.deleteByPattern(ctx, pattern)
+	key := fmt.Sprintf("session:ver:%s", userId)
+	return cache.RedisClient.Incr(ctx, key).Err()
 }
 
 func (s *SessionManager) InvalidateRoleSessions(roleId string) error {
@@ -54,6 +53,20 @@ func (s *SessionManager) InvalidateRoleSessions(roleId string) error {
 	log.Printf("[SessionManager] Invalidating all sessions for role %s with pattern %s", roleId, pattern)
 
 	return s.deleteByPattern(ctx, pattern)
+}
+
+func (s *SessionManager) GetSessionVersion(ctx context.Context, userId string) (int, error) {
+	key := fmt.Sprintf("session:ver:%s", userId)
+	val, err := cache.RedisClient.Get(ctx, key).Int()
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
+}
+
+func (s *SessionManager) SetSessionVersion(ctx context.Context, userId string, version int) error {
+	key := fmt.Sprintf("session:ver:%s", userId)
+	return cache.RedisClient.Set(ctx, key, version, 0).Err()
 }
 
 func (s *SessionManager) deleteByPattern(ctx context.Context, pattern string) error {

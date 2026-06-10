@@ -36,11 +36,8 @@ func Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		tokenHash := security.SHA256(tokenString)
-		sessionKey := fmt.Sprintf("session:role:%s:user:%s:access:%s", claims.RoleID, claims.UserID, tokenHash)
-
-		exists, err := cache.RedisClient.Exists(c.Request.Context(), sessionKey).Result()
-		if err != nil || exists == 0 {
+		storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf("session:ver:%s", claims.UserID)).Int()
+		if err != nil || storedVersion != claims.SessionVersion {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
 			return

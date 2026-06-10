@@ -11,7 +11,9 @@ import (
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
+	"backend-go/pkg/logger"
 	"backend-go/pkg/security"
+	"go.uber.org/zap"
 )
 
 const roleNameFilter = "Role.name"
@@ -25,6 +27,7 @@ type UserRepositoryI interface {
 	UpdatePassword(authID string, password string) error
 	SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error)
 	WithContext(ctx context.Context) UserRepositoryI
+	IncrementSessionVersion(ctx context.Context, userID string) (int, error)
 }
 
 func checkAdminUserUpdate(user *models.User, dto UpdateUserDTO) error {
@@ -140,7 +143,7 @@ func (s *UserService) Update(ctx context.Context, id string, dto UpdateUserDTO) 
 		}
 	}
 
-	s.SessionManager.InvalidateUserSessions(id, "")
+	s.bumpSessionVersion(ctx, id)
 
 	return repo.FindByID(id, "Auth", "Role")
 }
@@ -188,7 +191,8 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateUserSessions(id, "")
+	s.bumpSessionVersion(ctx, id)
+	return nil
 }
 
 func (s *UserService) SetStatus(ctx context.Context, id string, active bool) error {
@@ -202,7 +206,17 @@ func (s *UserService) SetStatus(ctx context.Context, id string, active bool) err
 	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateUserSessions(id, "")
+	s.bumpSessionVersion(ctx, id)
+	return nil
+}
+
+func (s *UserService) bumpSessionVersion(ctx context.Context, id string) {
+	newVersion, err := s.Repo.WithContext(ctx).IncrementSessionVersion(ctx, id)
+	if err != nil {
+		logger.Warn("failed to bump session version", zap.String("userID", id), zap.Error(err))
+		return
+	}
+	s.SessionManager.SetSessionVersion(ctx, id, newVersion)
 }
 
 func (s *UserService) ExportPdf(ctx context.Context, params database.FilterParams) (io.ReadCloser, error) {

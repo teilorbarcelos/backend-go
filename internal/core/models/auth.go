@@ -26,6 +26,7 @@ type Auth struct {
 	Retries                   int        `gorm:"default:0" json:"retries"`
 	FirstAccess               bool       `gorm:"default:true" json:"first_access"`
 	Active                    bool       `gorm:"default:true" json:"active"`
+	SessionVersion            int        `gorm:"default:0" json:"session_version"`
 
 	User *User `gorm:"foreignKey:IDAuth" json:"user,omitempty" swaggerignore:"true"`
 }
