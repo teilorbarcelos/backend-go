@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"backend-go/pkg/logger"
+	"backend-go/pkg/retry"
 
 	"backend-go/internal/core/models"
 	"backend-go/pkg/config"
@@ -26,11 +27,12 @@ import (
 var DB *gorm.DB
 
 var (
-	logFatalf     = logger.Fatalf
-	gormOpen      = gorm.Open
-	dbAutoMigrate = func(db *gorm.DB, dst ...interface{}) error { return db.AutoMigrate(dst...) }
-	runMigrations = defaultRunMigrations
-	migrateNew    = func(sourceURL, databaseURL string) (migrator, error) {
+	logFatalf         = logger.Fatalf
+	gormOpen          = gorm.Open
+	dbRetryConfig     = retry.DefaultConfig
+	dbAutoMigrate     = func(db *gorm.DB, dst ...interface{}) error { return db.AutoMigrate(dst...) }
+	runMigrations     = defaultRunMigrations
+	migrateNew        = func(sourceURL, databaseURL string) (migrator, error) {
 		return migrate.New(sourceURL, databaseURL)
 	}
 )
@@ -83,9 +85,13 @@ func ConnectDB() {
 		sqlDB.SetConnMaxIdleTime(idleTime)
 	}
 
-	DB, err = gormOpen(postgres.New(postgres.Config{
-		Conn: sqlDB,
-	}), gormConfig)
+	err = retry.Do(func() error {
+		var innerErr error
+		DB, innerErr = gormOpen(postgres.New(postgres.Config{
+			Conn: sqlDB,
+		}), gormConfig)
+		return innerErr
+	}, dbRetryConfig, "conexão com banco de dados")
 
 	if err != nil {
 		logFatalf("Falha ao conectar no banco de dados: %v", err)
