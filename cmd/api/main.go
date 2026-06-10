@@ -120,6 +120,12 @@ func main() {
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimitMiddleware())
 	r.Use(middleware.CacheControl())
+	r.Use(func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Next()
+	})
 	r.Use(middleware.Logger())
 	r.Use(middleware.ErrorLogger())
 
@@ -145,10 +151,12 @@ func main() {
 
 	v1 := r.Group("/v1")
 	{
+			if config.AppConfig.Environment != "production" {
 			v1.GET("/docs", func(c *gin.Context) {
-			c.Redirect(http.StatusMovedPermanently, "/v1/docs/index.html")
-		})
-		v1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/api-docs/openapi.json")))
+				c.Redirect(http.StatusMovedPermanently, "/v1/docs/index.html")
+			})
+			v1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/api-docs/openapi.json")))
+		}
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
 		auth.RegisterRoutes(v1, protected, database.DB)

@@ -82,6 +82,21 @@ func TestCacheControl(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "fail")
 	})
 
+	t.Run("Empty response passes through", func(t *testing.T) {
+		r := gin.New()
+		r.Use(CacheControl())
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Empty(t, w.Header().Get("ETag"))
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
 	t.Run("Non-JSON response passes through without ETag", func(t *testing.T) {
 		r := gin.New()
 		r.Use(CacheControl())
