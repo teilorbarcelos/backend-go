@@ -56,6 +56,13 @@ func main() {
 	}
 	database.ConnectDB()
 	audit.RegisterAuditHooks(database.DB)
+
+	if config.AppConfig.Environment != "test" {
+		auditBuffer := audit.NewAuditBuffer(database.DB, 50, 500*time.Millisecond)
+		audit.SetAuditBuffer(auditBuffer)
+		defer auditBuffer.Shutdown()
+	}
+
 	cache.ConnectRedis()
 	messaging.ConnectRabbitMQ()
 

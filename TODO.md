@@ -130,8 +130,11 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 - `[ ]` Mover `applyFiltersLogic` para uso de placeholders nomeados onde possível, evitando `fmt.Sprintf` em hot path.
 
 ### 2.3. Otimizações de audit hook
-- `[ ]` O hook de `audit:update` (`internal/core/audit/hooks.go:48`) faz um `SELECT` extra antes do `UPDATE` para capturar `oldValues`. Mover para **async batch writer** (canal + flush periódico a cada 1s ou 100 registros) com persistência em batch via `INSERT ... VALUES (...), (...), ...`.
-- `[ ]` Em alta concorrência, enfileirar logs no buffer channel com backpressure e usar `COPY` ou `multi-row INSERT` (GORM `CreateInBatches`).
+- `[x]` Criar `AuditBuffer` com buffer channel + flush periódico + batch INSERT — `internal/core/audit/buffer.go`
+- `[x]` Hooks escrevem via `writeAuditLog`: se buffer ativo, push; senão, síncrono — `internal/core/audit/hooks.go:29`
+- `[x]` Goroutine de background drena canal no shutdown — `buffer.go:75`
+- `[x]` `sync.WaitGroup` + `closeOnce` para shutdown seguro — `buffer.go:17-18`
+- `[x]` `main.go` inicializa buffer com `NewAuditBuffer(db, 50, 500ms)` + `SetAuditBuffer` + `defer Shutdown`
 - `[ ]` Adicionar opção de desabilitar audit por rota/modelo via tag `gorm:"audit:false"`.
 
 ---
@@ -385,7 +388,7 @@ Todo item deste checklist — bem como qualquer código novo, refatoração ou c
 2. `[x]` **`PrepareStmt` + `NowFunc` + pool tuning no GORM** (item 2.2) — reduz parse e padroniza timestamps.
 3. `[ ]` **HTTP server timeouts explícitos** (item 10.1) — fecha vetor slowloris e melhora UX.
 4. `[x]` **Rate limit com Lua script atômico** (item 4.3) — elimina race entre INCR e EXPIRE.
-5. `[ ]` **Async batch audit writer** (item 2.3) — move 1 query extra de cada UPDATE para batch assíncrono.
+5. `[x]` **Async batch audit writer** (item 2.3) — move 1 query extra de cada UPDATE para batch assíncrono.
 6. `[ ]` **Cache-aside + singleflight** (item 3.1) — protege backend de stampede em dados quentes.
 7. `[ ]` **Compressão HTTP + ETag** (item 4.1) — reduz banda em 60-80% para JSON.
 8. `[x]` **Permissões em bitset cacheado** (item 1.3) — RBAC O(1) por request.
