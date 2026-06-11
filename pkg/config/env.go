@@ -31,6 +31,7 @@ type Config struct {
 	JWTRefreshExpiry    string `mapstructure:"JWT_REFRESH_EXPIRY"`
 	DBStatementTimeout   int    `mapstructure:"DB_STATEMENT_TIMEOUT"`
 	DBIdleInTxTimeout    int    `mapstructure:"DB_IDLE_IN_TX_TIMEOUT"`
+	AuthMode             string `mapstructure:"AUTH_MODE"`
 }
 
 var AppConfig Config
@@ -65,6 +66,7 @@ func LoadConfig() {
 	viper.SetDefault("JWT_REFRESH_EXPIRY", "168h")
 	viper.SetDefault("DB_STATEMENT_TIMEOUT", 30000)
 	viper.SetDefault("DB_IDLE_IN_TX_TIMEOUT", 60000)
+	viper.SetDefault("AUTH_MODE", "local")
 
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Log.Sugar().Warnf("Aviso: arquivo .env não encontrado, usando variáveis de ambiente: %v", err)

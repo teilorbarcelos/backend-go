@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -164,7 +165,13 @@ func main() {
 		}
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
-		auth.RegisterRoutes(v1, protected, database.DB)
+
+		if config.AppConfig.AuthMode == "local" {
+			auth.RegisterRoutes(v1, protected, database.DB)
+		} else {
+			log.Println("ℹ️ AUTH_MODE=remote — rota /v1/auth/* desabilitada")
+		}
+
 		user.RegisterRoutes(protected, database.DB, sessionMgr)
 		role.RegisterRoutes(protected, database.DB, sessionMgr)
 		product.RegisterRoutes(protected, database.DB)
