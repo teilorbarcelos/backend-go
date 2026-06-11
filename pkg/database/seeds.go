@@ -10,6 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var hashPassword = security.HashPassword
+
 type FeatureData struct {
 	Key         string
 	Name        string
@@ -118,7 +120,7 @@ func seedAdminUser(db *gorm.DB) {
 	if adminCount == 0 {
 		log.Printf("Criando usuário administrador inicial: %s", config.AppConfig.FirstUserEmail)
 
-		hashedPassword, err := security.HashPassword(config.AppConfig.FirstUserPassword)
+		hashedPassword, err := hashPassword(config.AppConfig.FirstUserPassword)
 		if err != nil {
 			log.Printf("Erro ao hashear senha do administrador: %v", err)
 		} else {

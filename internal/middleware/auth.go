@@ -2,16 +2,14 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"backend-go/pkg/cache"
-	"backend-go/pkg/security"
+		"backend-go/pkg/security"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
 const middlewareSessionVerKey = "session:ver:%s"
@@ -35,26 +33,13 @@ func Authenticate() gin.HandlerFunc {
 		tokenString := parts[1]
 		claims, err := security.ValidateToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token inválido: %v", err)})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
 			return
 		}
-
-		fmt.Printf("[AUTH DEBUG] UserID=%s Email=%s RoleID=%s SessionVersion=%d Permissions=%d\n",
-			claims.UserID, claims.Email, claims.RoleID, claims.SessionVersion, len(claims.Permissions))
 
 		storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf(middlewareSessionVerKey, claims.UserID)).Int()
-		if errors.Is(err, redis.Nil) {
-			storedVersion = 0
-		} else if err != nil {
-			errMsg := fmt.Sprintf("Redis error: %v", err)
-			fmt.Printf("[AUTH DEBUG] %s\n", errMsg)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": errMsg})
-			c.Abort()
-			return
-		}
-		if storedVersion != claims.SessionVersion {
-			fmt.Printf("[AUTH DEBUG] Version mismatch: stored=%d claims=%d\n", storedVersion, claims.SessionVersion)
+		if err != nil || storedVersion != claims.SessionVersion {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
 			return
