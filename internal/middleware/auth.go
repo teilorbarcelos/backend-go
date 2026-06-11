@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"backend-go/pkg/cache"
-		"backend-go/pkg/security"
+	"backend-go/pkg/config"
+	"backend-go/pkg/security"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,16 +34,18 @@ func Authenticate() gin.HandlerFunc {
 		tokenString := parts[1]
 		claims, err := security.ValidateToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token inválido: %v", err)})
 			c.Abort()
 			return
 		}
 
-		storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf(middlewareSessionVerKey, claims.UserID)).Int()
-		if err != nil || storedVersion != claims.SessionVersion {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
-			c.Abort()
-			return
+		if config.AppConfig.AuthMode != "remote" {
+			storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf(middlewareSessionVerKey, claims.UserID)).Int()
+			if err != nil || storedVersion != claims.SessionVersion {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
+				c.Abort()
+				return
+			}
 		}
 
 		ctx := context.WithValue(c.Request.Context(), "userID", claims.UserID)
