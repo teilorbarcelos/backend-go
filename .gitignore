@@ -40,4 +40,4 @@ go.work.sum
 # Air hot reload
 TODO.md
 .scannerwork/
-tmp/
+tmp
