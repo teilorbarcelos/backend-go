@@ -14,7 +14,14 @@ import (
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/config"
 	"backend-go/pkg/database"
+	"backend-go/pkg/security"
 )
+
+type failReader struct{}
+
+func (failReader) Read(_ []byte) (int, error) {
+	return 0, errors.New("read error")
+}
 
 type MockUserRepository struct {
 	mock.Mock
@@ -58,6 +65,10 @@ func (m *MockUserRepository) UpdatePassword(authID string, password string) erro
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) IncrementSessionVersion(ctx context.Context, userID string) (int, error) {
+	args := m.Called(ctx, userID)
+	return args.Int(0), args.Error(1)
+}
 
 func (m *MockUserRepository) SearchPaginated(params database.FilterParams, filterable map[string]database.FilterConfig, searchable []database.SearchConfig, preloads ...string) ([]models.User, int64, error) {
 	args := m.Called(params, filterable, searchable, preloads)
@@ -340,16 +351,19 @@ func TestUserService_ErrorPaths(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Create Password Error", func(t *testing.T) {
+	t.Run("Create Hash Error", func(t *testing.T) {
+		oldReader := security.CryptoReader
+		security.CryptoReader = failReader{}
+		defer func() { security.CryptoReader = oldReader }()
+
 		mockRepo := new(MockUserRepository)
 		service := NewUserService(mockRepo, sessionMgr, nil)
-		// Bcrypt has a maximum password length (72 bytes). 
-		// Providing a very long password should trigger an error in HashPassword.
-		longPass := make([]byte, 100)
-		for i := range longPass {
-			longPass[i] = 'a'
-		}
-		_, err := service.Create(ctx, CreateUserDTO{Password: string(longPass)})
+		_, err := service.Create(ctx, CreateUserDTO{
+			Name:     "Test",
+			Email:    "hash-error@test.com",
+			Password: "valid-password",
+			IDRole:   "administrator",
+		})
 		assert.Error(t, err)
 	})
 
@@ -399,6 +413,30 @@ func TestUserService_ErrorPaths(t *testing.T) {
 		mockRepo.On("Update", "1", mock.Anything).Return(errors.New("update error")).Once()
 		err := service.SetStatus(ctx, "1", true)
 		assert.Error(t, err)
+	})
+
+	t.Run("IncrementSessionVersion Error", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr, nil)
+		user := &models.User{Email: "test@test.com"}
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("IncrementSessionVersion", mock.Anything, "1").Return(0, errors.New("version err"))
+
+		err := service.SetStatus(ctx, "1", true)
+		assert.NoError(t, err)
+	})
+
+	t.Run("SetSessionVersion Success", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		service := NewUserService(mockRepo, sessionMgr, nil)
+		user := &models.User{Email: "test@test.com"}
+		mockRepo.On("FindByID", "1", mock.Anything).Return(user, nil).Once()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("IncrementSessionVersion", mock.Anything, "1").Return(42, nil)
+
+		err := service.SetStatus(ctx, "1", true)
+		assert.NoError(t, err)
 	})
 }
 

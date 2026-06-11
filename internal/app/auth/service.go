@@ -31,7 +31,7 @@ type authService struct {
 	repo                 Repository
 	sessionManager       session.SessionStore
 	emailProvider        email.Provider
-	GenerateToken        func(id, email, idRole string, permissions []security.Permission) (string, error)
+	GenerateToken        func(id, email, idRole string, permissions []security.Permission, sessionVersion int) (string, error)
 	GenerateRefreshToken func(id, email, idRole string) (string, error)
 	HashPassword         func(password string) (string, error)
 }
@@ -217,7 +217,12 @@ func generateRandom6DigitToken() (string, error) {
 func (s *authService) prepareAuthResponse(ctx context.Context, user *models.User) (*LoginResponse, error) {
 	permissions := s.mapPermissions(user)
 
-	token, err := s.GenerateToken(user.ID, user.Email, user.IDRole, permissions)
+	sessionVersion := 0
+	if user.Auth != nil {
+		sessionVersion = user.Auth.SessionVersion
+	}
+
+	token, err := s.GenerateToken(user.ID, user.Email, user.IDRole, permissions, sessionVersion)
 	if err != nil {
 		return nil, domainerr.ErrInternal
 	}
@@ -226,6 +231,8 @@ func (s *authService) prepareAuthResponse(ctx context.Context, user *models.User
 	if err != nil {
 		return nil, domainerr.ErrInternal
 	}
+
+	s.sessionManager.SetSessionVersion(ctx, user.ID, sessionVersion)
 
 	if err := s.createSession(ctx, user, token, refreshToken, permissions); err != nil {
 		log.Printf("[AuthService] Erro ao salvar sessão: %v", err)

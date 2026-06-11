@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 
 	"github.com/gin-gonic/gin"
@@ -88,5 +89,9 @@ func HandleError(c *gin.Context, err error) {
 		return
 	}
 
+	if config.AppConfig.Environment == "production" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno do servidor"})
+		return
+	}
 	c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 }

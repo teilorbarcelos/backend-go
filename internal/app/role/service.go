@@ -4,7 +4,9 @@ import (
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
 	"backend-go/pkg/database"
+	"backend-go/pkg/logger"
 	"context"
+	"go.uber.org/zap"
 )
 
 type RoleService struct {
@@ -49,6 +51,7 @@ func (s *RoleService) Update(ctx context.Context, id string, dto CreateRoleDTO) 
 		return nil, err
 	}
 	s.SessionManager.InvalidateRoleSessions(id)
+	s.bulkBumpSessionVersion(ctx, id)
 	return s.Repo.WithContext(ctx).FindByID(id, "RoleFeature")
 }
 
@@ -75,12 +78,35 @@ func (s *RoleService) Delete(ctx context.Context, id string) error {
 	if err := s.Repo.WithContext(ctx).Delete(id); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateRoleSessions(id)
+	s.SessionManager.InvalidateRoleSessions(id)
+	s.bulkBumpSessionVersion(ctx, id)
+	return nil
+}
+
+func (s *RoleService) bulkBumpSessionVersion(ctx context.Context, roleID string) {
+	if err := s.Repo.WithContext(ctx).BulkIncrementSessionVersion(ctx, roleID); err != nil {
+		logger.Warn("failed to bulk bump session version for role", zap.String("roleID", roleID), zap.Error(err))
+		return
+	}
+
+	userIDs, err := s.Repo.WithContext(ctx).FindUserIDsByRole(ctx, roleID)
+	if err != nil {
+		logger.Warn("failed to find users for role version sync", zap.String("roleID", roleID), zap.Error(err))
+		return
+	}
+
+	for _, uid := range userIDs {
+		if err := s.SessionManager.InvalidateUserSessions(uid, roleID); err != nil {
+			logger.Warn("failed to sync redis session version", zap.String("userID", uid), zap.Error(err))
+		}
+	}
 }
 
 func (s *RoleService) SetStatus(ctx context.Context, id string, active bool) error {
 	if err := s.Repo.WithContext(ctx).Update(id, map[string]interface{}{"active": active}); err != nil {
 		return err
 	}
-	return s.SessionManager.InvalidateRoleSessions(id)
+	s.SessionManager.InvalidateRoleSessions(id)
+	s.bulkBumpSessionVersion(ctx, id)
+	return nil
 }

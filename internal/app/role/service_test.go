@@ -7,8 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/redis/go-redis/v9"
 	"backend-go/internal/core/models"
 	"backend-go/internal/infra/session"
+	"backend-go/pkg/cache"
 	"backend-go/pkg/database"
 )
 
@@ -62,6 +64,16 @@ func (m *MockRoleRepository) SearchPaginated(params database.FilterParams, f map
 func (m *MockRoleRepository) ListFeatures(ctx context.Context) ([]models.Feature, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]models.Feature), args.Error(1)
+}
+
+func (m *MockRoleRepository) BulkIncrementSessionVersion(ctx context.Context, roleID string) error {
+	args := m.Called(ctx, roleID)
+	return args.Error(0)
+}
+
+func (m *MockRoleRepository) FindUserIDsByRole(ctx context.Context, roleID string) ([]string, error) {
+	args := m.Called(ctx, roleID)
+	return args.Get(0).([]string), args.Error(1)
 }
 
 func TestRoleService_Create(t *testing.T) {
@@ -171,5 +183,44 @@ func TestRoleService_SetStatus(t *testing.T) {
 
 		err := service.SetStatus(ctx, "1", false)
 		assert.Error(t, err)
+	})
+
+	t.Run("BulkIncrementSessionVersion Error", func(t *testing.T) {
+		mockRepo := new(MockRoleRepository)
+		service := NewRoleService(mockRepo, sessionMgr)
+		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("BulkIncrementSessionVersion", mock.Anything, "1").Return(errors.New("bulk err")).Once()
+
+		err := service.SetStatus(ctx, "1", false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("FindUserIDsByRole Error", func(t *testing.T) {
+		mockRepo := new(MockRoleRepository)
+		service := NewRoleService(mockRepo, sessionMgr)
+		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("BulkIncrementSessionVersion", mock.Anything, "1").Return(nil).Once()
+		mockRepo.On("FindUserIDsByRole", mock.Anything, "1").Return([]string{}, errors.New("find err")).Once()
+
+		err := service.SetStatus(ctx, "1", false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("InvalidateUserSessions Error", func(t *testing.T) {
+		oldClient := cache.RedisClient
+		cache.RedisClient = redis.NewClient(&redis.Options{Addr: "invalid:6379"})
+		defer func() { cache.RedisClient = oldClient }()
+
+		mockRepo := new(MockRoleRepository)
+		service := NewRoleService(mockRepo, sessionMgr)
+		mockRepo.On("WithContext", mock.Anything).Return(mockRepo).Maybe()
+		mockRepo.On("Update", "1", mock.Anything).Return(nil).Once()
+		mockRepo.On("BulkIncrementSessionVersion", mock.Anything, "1").Return(nil).Once()
+		mockRepo.On("FindUserIDsByRole", mock.Anything, "1").Return([]string{"redis-down-user"}, nil).Once()
+
+		err := service.SetStatus(ctx, "1", false)
+		assert.NoError(t, err)
 	})
 }

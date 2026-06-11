@@ -13,7 +13,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Setup test environment
 	os.Setenv("ENVIRONMENT", "test")
 	config.LoadConfig()
 	cache.ConnectRedis()
@@ -27,27 +26,30 @@ func TestSessionManager_InvalidateUserSessions(t *testing.T) {
 	ctx := context.Background()
 	userId := "user123"
 	roleId := "admin"
+	verKey := fmt.Sprintf(sessionVersionKeyFormat, userId)
 
-	// Setup: Add some session keys to Redis
-	key1 := fmt.Sprintf("session:role:%s:user:%s:1", roleId, userId)
-	key2 := fmt.Sprintf("session:role:%s:user:%s:2", roleId, userId)
-	cache.RedisClient.Set(ctx, key1, "data", 0)
-	cache.RedisClient.Set(ctx, key2, "data", 0)
+	t.Run("Invalidate bumps version key", func(t *testing.T) {
+		// Clean up
+		cache.RedisClient.Del(ctx, verKey)
 
-	t.Run("Invalidate existing user sessions", func(t *testing.T) {
 		err := sm.InvalidateUserSessions(userId, roleId)
 		assert.NoError(t, err)
 
-		// Verify keys are deleted
-		val1 := cache.RedisClient.Exists(ctx, key1).Val()
-		val2 := cache.RedisClient.Exists(ctx, key2).Val()
-		assert.Equal(t, int64(0), val1)
-		assert.Equal(t, int64(0), val2)
+		val, err := cache.RedisClient.Get(ctx, verKey).Int()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, val)
 	})
 
-	t.Run("Invalidate non-existing user sessions", func(t *testing.T) {
-		err := sm.InvalidateUserSessions("nonexistent", "role")
+	t.Run("Invalidate bumps version incrementally", func(t *testing.T) {
+		cache.RedisClient.Set(ctx, verKey, 5, 0)
+		defer cache.RedisClient.Del(ctx, verKey)
+
+		err := sm.InvalidateUserSessions(userId, roleId)
 		assert.NoError(t, err)
+
+		val, err := cache.RedisClient.Get(ctx, verKey).Int()
+		assert.NoError(t, err)
+		assert.Equal(t, 6, val)
 	})
 }
 
@@ -56,7 +58,6 @@ func TestSessionManager_InvalidateRoleSessions(t *testing.T) {
 	ctx := context.Background()
 	roleId := "manager"
 
-	// Setup: Add some session keys to Redis
 	key1 := fmt.Sprintf("session:role:%s:user:u1:1", roleId)
 	key2 := fmt.Sprintf("session:role:%s:user:u2:2", roleId)
 	cache.RedisClient.Set(ctx, key1, "data", 0)
@@ -66,7 +67,6 @@ func TestSessionManager_InvalidateRoleSessions(t *testing.T) {
 		err := sm.InvalidateRoleSessions(roleId)
 		assert.NoError(t, err)
 
-		// Verify keys are deleted
 		val1 := cache.RedisClient.Exists(ctx, key1).Val()
 		val2 := cache.RedisClient.Exists(ctx, key2).Val()
 		assert.Equal(t, int64(0), val1)
@@ -81,36 +81,43 @@ func TestSessionManager_InvalidateRoleSessions(t *testing.T) {
 
 func TestSessionManager_DeleteByPattern_Error(t *testing.T) {
 	sm := NewSessionManager()
+	ctx := context.Background()
 
 	t.Run("Redis Scan error", func(t *testing.T) {
-		// Backup and close client to trigger error on Scan
 		originalClient := cache.RedisClient
 		cache.RedisClient.Close()
-		
+
 		err := sm.InvalidateRoleSessions("any")
 		assert.Error(t, err)
-		
-		// Restore client
+
 		cache.RedisClient = originalClient
 		cache.ConnectRedis()
 	})
 
-	t.Run("Redis Del error", func(t *testing.T) {
-		// Setup: Add a key so Del is called
-		userId := "error-user"
-		key := fmt.Sprintf("session:role:admin:user:%s:1", userId)
-		cache.RedisClient.Set(context.Background(), key, "data", 0)
+	t.Run("Redis Del error on InvalidateUserSessions", func(t *testing.T) {
+		userId := "del-err-user"
+		refreshKey := fmt.Sprintf("session:role:admin:user:%s:refresh:hash123", userId)
+		cache.RedisClient.Set(ctx, refreshKey, "1", 0)
+		defer cache.RedisClient.Del(ctx, refreshKey)
 
-		// Use hook to fail specifically on "del"
 		hook := &delErrorHook{enabled: true}
 		cache.RedisClient.AddHook(hook)
-		
-		// This should call Scan (success) then Del (fail)
+		defer func() { hook.enabled = false }()
+
 		err := sm.InvalidateUserSessions(userId, "admin")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "forced del error")
+	})
 
-		hook.enabled = false
+	t.Run("InvalidateUserSessions INCR error", func(t *testing.T) {
+		originalClient := cache.RedisClient
+		cache.RedisClient.Close()
+
+		err := sm.InvalidateUserSessions("any", "")
+		assert.Error(t, err)
+
+		cache.RedisClient = originalClient
+		cache.ConnectRedis()
 	})
 }
 
@@ -129,7 +136,6 @@ func TestSessionManager_CreateSession(t *testing.T) {
 	})
 
 	t.Run("Marshal Error", func(t *testing.T) {
-		// Functions cannot be marshaled to JSON
 		payload := map[string]interface{}{"key": func() {}}
 		err := sm.CreateSession(ctx, "u2", "r1", "hash", payload, 0)
 		assert.Error(t, err)
@@ -147,6 +153,35 @@ func TestSessionManager_CreateRefreshToken(t *testing.T) {
 		key := "session:role:r1:user:u1:refresh:hash"
 		exists := cache.RedisClient.Exists(ctx, key).Val()
 		assert.Equal(t, int64(1), exists)
+	})
+}
+
+func TestSessionManager_SessionVersion(t *testing.T) {
+	sm := NewSessionManager()
+	ctx := context.Background()
+	userId := "ver-test-user"
+
+	t.Run("GetSessionVersion returns error when key not set", func(t *testing.T) {
+		cache.RedisClient.Del(ctx, fmt.Sprintf(sessionVersionKeyFormat, userId))
+		_, err := sm.GetSessionVersion(ctx, userId)
+		assert.Error(t, err)
+	})
+
+	t.Run("Set then Get session version", func(t *testing.T) {
+		err := sm.SetSessionVersion(ctx, userId, 42)
+		assert.NoError(t, err)
+
+		ver, err := sm.GetSessionVersion(ctx, userId)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, ver)
+	})
+
+	t.Run("InvalidateUserSessions bumps version", func(t *testing.T) {
+		cache.RedisClient.Del(ctx, fmt.Sprintf(sessionVersionKeyFormat, userId))
+		sm.InvalidateUserSessions(userId, "")
+		ver, err := sm.GetSessionVersion(ctx, userId)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, ver)
 	})
 }
 
@@ -170,7 +205,3 @@ func (h *delErrorHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 func (h *delErrorHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return next
 }
-
-// Since I need to refer to redis types that might not be exported or are from another package,
-// I should check how they are imported in the test file.
-// Wait, I can just use the redis package directly in the test.

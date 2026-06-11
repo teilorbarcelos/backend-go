@@ -5,198 +5,226 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/teilorbarcelos/backend-go/actions/workflows/ci.yml/badge.svg)](https://github.com/teilorbarcelos/backend-go/actions/workflows/ci.yml)
 
-Este é um boilerplate de nível **Enterprise** construído em Go, seguindo os princípios de **Clean Architecture** e **Modular Monolith**. Projetado para alta escalabilidade, performance extrema e uma experiência de desenvolvimento (DX) superior.
+Boilerplate Go seguindo **Clean Architecture** e **Modular Monolith**. Foco em simplicidade, segurança essencial e cobertura de testes — sem overengineering.
 
 ---
 
-## 💎 Diferenciais Estratégicos
+## 💎 O que vem incluído
 
-Este projeto não é apenas uma estrutura de pastas, mas um ecossistema completo para aplicações de missão crítica:
-
-*   **🛡️ Segurança Industrial:** RBAC (Role-Based Access Control), JWT com invalidação via Redis, Rate Limiting e Auditoria Automática (Audit Logs).
-*   **🏗️ Geradores de Código (Scaffolding):** Crie módulos CRUD completos ou novos Storage Drivers em segundos com comandos CLI.
-*   **🧪 Testes de Alta Fidelidade:** 100% de cobertura de código garantida por **Testcontainers** (Postgres e Redis reais nos testes).
-*   **📊 Observabilidade de Elite:** Stack completa com Prometheus e Grafana. Dashboards pré-configurados para monitoramento em tempo real de RPS, Latência, CPU e Memória.
-*   **📂 Gestão de Media Modular:** Factory pattern para múltiplos storages (S3, Local, etc.) com geração automática de infraestrutura.
-*   **📄 Geração de PDF (Streaming Bypass):** Integração eficiente com microserviço de PDF que realiza o bypass da resposta diretamente para o cliente, sem sobrecarga de memória.
+*   **🛡️ Segurança essencial:** RBAC, JWT com invalidação via Redis, Rate Limiting, Auditoria automática, Security headers, body size limit, sanitização de erros em produção.
+*   **🏗️ Geradores de Código:** Crie módulos CRUD ou drivers de Storage com CLI.
+*   **🧪 100% de cobertura:** Garantida por **Testcontainers** (Postgres e Redis reais nos testes).
+*   **📊 Observabilidade:** Prometheus, logs estruturados com `zap` e request ID propagado via context.
+*   **📄 Geração de PDF:** Integração streaming com microserviço de PDF, com fallback para mock.
+*   **🔒 Validações de produção:** JWT_SECRET, RateLimitMax/Window, TrustedProxies.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## 🛠️ Stack
 
 *   **Linguagem:** Go 1.21+
-*   **Web Framework:** Gin Gonic
-*   **ORM:** GORM (PostgreSQL)
+*   **Web Framework:** Gin
+*   **ORM:** GORM + pgx (PostgreSQL)
 *   **Cache/Session:** Redis
 *   **Mensageria:** RabbitMQ
 *   **Documentação:** Swagger / OpenAPI
-*   **Infra Dev:** Docker & Docker Compose
 *   **Live Reload:** Air
-*   **Geração de PDF:** React-PDF Service (Streaming Bypass)
+*   **Geração de PDF:** React-PDF Service
 
 ---
 
 ## 🏗️ Arquitetura
 
-O projeto utiliza uma abordagem de **Modular Monolith**, permitindo que o sistema cresça de forma organizada e seja facilmente decomposto em microserviços se necessário.
+**Modular Monolith** — cada domínio (User, Role, Product, Auth, etc.) vive em `internal/app/` e tem seus próprios handler/service/repository/rotas, pronto para ser extraído em microserviço se necessário.
 
 ```text
 .
-├── cmd/api/            # Ponto de entrada da aplicação
+├── cmd/api/            # Ponto de entrada
 ├── internal/
-│   ├── app/            # Módulos de Domínio (User, Role, Media, etc.)
-│   ├── core/           # Lógica compartilhada (Models, Audit, Middleware)
-│   └── infra/          # Implementações de infraestrutura (Session, etc.)
-├── pkg/                # Pacotes utilitários reutilizáveis (Database, Logger, Security)
-├── tools/              # Ferramentas auxiliares e Geradores
-└── docker-compose.yml  # Orquestração de serviços
+│   ├── app/            # Módulos de domínio (auth, user, role, product, dashboard, media)
+│   ├── core/           # Compartilhado (models, audit, repository, handler, middleware)
+│   └── infra/          # Implementações de infraestrutura (session, pdf)
+├── pkg/                # Reutilizáveis: config, database, security, cache, messaging, logger, retry
+├── tools/              # Geradores (CRUD, storage driver)
+└── docker-compose.yml
 ```
 
 ---
 
-## 🚀 Iniciando o Ambiente de Desenvolvimento
-
-Siga estes passos para ter o ambiente rodando do zero em menos de 2 minutos:
+## 🚀 Setup Rápido
 
 ### 1. Pré-requisitos
-*   [Docker](https://www.docker.com/) e [Docker Compose](https://docs.docker.com/compose/)
-*   [Go](https://golang.org/dl/) (instalado localmente para os geradores)
+- [Docker](https://www.docker.com/) e [Docker Compose](https://docs.docker.com/compose/)
+- [Go](https://golang.org/dl/) 1.21+ (para os geradores)
 
-### 2. Configuração Inicial
-Clone o repositório e configure as variáveis de ambiente:
+### 2. Configuração
 ```bash
 cp .env.example .env
 ```
 
 ### 3. Subir a Infraestrutura
-Inicie os serviços de banco de dados, cache e mensageria:
+Sobe Postgres, Redis e RabbitMQ:
 ```bash
 make infra-up
 ```
 
-### 4. Rodar a Aplicação (Live Reload)
-O comando abaixo instala o `Air` automaticamente e inicia o servidor com hot-reload:
+### 4. Rodar a Aplicação
+Live reload com Air (instala automaticamente na primeira vez):
 ```bash
 make dev
 ```
-A API estará disponível em `http://localhost:8888`.
+API disponível em `http://localhost:8888`.
 
 ---
 
-## 📊 Observabilidade e Monitoramento
+## 🔐 Configuração por Variáveis de Ambiente
 
-O boilerplate já vem configurado com ferramentas essenciais para monitoramento em produção:
+Todas as variáveis ficam no `.env` (carregado via Viper). Em produção, defina o que difere do dev.
 
-*   **Stack de Métricas (Prometheus & Grafana):** Monitoramento visual e em tempo real da saúde da aplicação.
-    *   **Prometheus:** Coleta métricas da aplicação a cada 10s.
-    *   **Grafana:** Visualização de dados via dashboards profissionais.
-    *   **Comandos:** `make metrics-up` para subir a stack e `make metrics-down` para remover.
-*   **Métricas (Prometheus):** Disponíveis no endpoint `/metrics`. Expõe contadores de requisições, latência e status HTTP.
-    *   URL: `http://localhost:8888/metrics`
-*   **Logging Estruturado:** Utiliza o `uber-go/zap` para logs em JSON de alta performance.
-    *   **TraceID:** Cada log inclui um `trace_id` único para rastrear requisições ponta-a-ponta através do middleware.
-    *   **Contexto:** Suporte para logging com contexto para capturar metadados da requisição automaticamente.
-*   **Health Check:** Endpoint simples para monitorar o status da aplicação.
-    *   URL: `http://localhost:8888/health`
+### Banco de Dados
+| Variável | Default | Descrição |
+|----------|---------|-----------|
+| `DATABASE_URL` | `postgres://...` | DSN do PostgreSQL |
+| `DB_MAX_OPEN_CONNS` | `50` | Conexões máximas abertas |
+| `DB_MAX_IDLE_CONNS` | `10` | Conexões ociosas no pool |
+| `DB_CONN_MAX_LIFETIME` | `30m` | Tempo máximo de vida de uma conexão |
+| `DB_CONN_MAX_IDLE_TIME` | `5m` | Tempo máximo ocioso de uma conexão |
+| `DB_STATEMENT_TIMEOUT` | `30000` | Timeout de query em ms (PostgreSQL `statement_timeout`) |
+| `DB_IDLE_IN_TX_TIMEOUT` | `60000` | Timeout de transação ociosa em ms |
+
+### Segurança
+| Variável | Default | Validação em produção |
+|----------|---------|------------------------|
+| `JWT_SECRET` | — | **obrigatório >= 32 caracteres** |
+| `JWT_ISSUER` | `backend-go` | — |
+| `JWT_AUDIENCE` | `backend-go-api` | — |
+| `JWT_ACCESS_EXPIRY` | `15m` | — |
+| `JWT_REFRESH_EXPIRY` | `168h` (7d) | — |
+| `RATE_LIMIT_MAX` | `100` | **obrigatório > 0** |
+| `RATE_LIMIT_WINDOW` | `1m` | **obrigatório parseável** |
+| `TRUSTED_PROXIES` | `""` (confia em todos) | Configure o range CIDR do seu LB |
+
+### API
+| Variável | Default | Descrição |
+|----------|---------|-----------|
+| `ENVIRONMENT` | `development` | `development` / `test` / `production` |
+| `PORT` | `3000` | Porta HTTP |
+| `HOST` | `0.0.0.0` | Host |
+| `LOG_LEVEL` | `info` | — |
+| `FIRST_USER` | `admin@email.com` | Seed do admin |
+| `FIRST_PASSWORD` | `admin@123` | Seed do admin |
+| `PDF_SERVICE_URL` | `http://localhost:8889` | URL do serviço de PDF |
 
 ---
 
-## 🛡️ Segurança e Proteção
+## 🛡️ Segurança
 
-A segurança é tratada como prioridade, com múltiplas camadas de proteção:
-
-*   **Rate Limiting (Redis):** Proteção contra força bruta e DoS.
-    *   **Inteligente:** Identifica usuários autenticados por ID e usuários anônimos por IP.
-    *   **Headers:** Retorna `X-RateLimit-Limit`, `X-RateLimit-Remaining` e `X-RateLimit-Reset`.
-    *   **Configurável:** Limites e janelas de tempo definidos via variáveis de ambiente.
-*   **RBAC (Role-Based Access Control):** Controle de acesso granular baseado em permissões vinculadas a papéis (Roles).
-    *   Middleware dedicado para checagem de permissões por endpoint.
-*   **Gestão de Sessões:** Invalidação de tokens em tempo real via Redis (Logout global, troca de senha ou alteração de permissões).
-*   **Auditoria Automática:** Registro de quem, quando e o que foi alterado em qualquer tabela do banco de dados através de GORM Hooks.
+- **JWT HS256** com claims `iss`/`aud`, access token de 15 min, refresh de 7 dias.
+- **Invalidação de sessão O(1)** via versionamento no Redis (sem `SCAN`/`DEL`).
+- **Rate Limiting atômico** via Redis Lua script, com headers `X-RateLimit-*`.
+- **RBAC** baseado em bitset de permissões compilado no JWT — checagem O(1) por request.
+- **Auditoria automática** via GORM hooks, escrita em batch assíncrono.
+- **Argon2id** para hash de senhas (compatível com hashes bcrypt antigos).
+- **Hash de senhas nunca logado** (campo `password` é scrubado).
+- **Security headers** em todas as respostas: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`.
+- **Request body limit** de 10 MB (proteção contra DoS).
+- **Errors sanitizados em produção** — detalhes internos nunca vazam.
+- **NoRoute/NoMethod** retornam JSON tipado.
+- **Swagger desabilitado em produção**.
 
 ---
 
-## 📄 Geração de PDF (Streaming Bypass)
+## 📊 Observabilidade
 
-O sistema possui uma integração otimizada para geração de documentos PDF utilizando um microserviço externo baseado em `react-pdf`.
-
-*   **Eficiência de Memória:** O backend Go atua como um proxy transparente. Utiliza `io.Copy` para repassar o stream de dados do microserviço diretamente para o frontend, garantindo que arquivos grandes não consumam memória RAM do servidor.
-*   **Debug & Test:** Endpoints prontos para validação em `/v1/debug/pdf` (GET para teste rápido e POST para payloads customizados).
-*   **Padrão Enterprise:** Seguindo o mesmo padrão de integração streaming presente no boilerplate original em Java Quarkus.
-
-## 🛠️ Utilizando os Geradores
-
-Aumente sua produtividade usando as ferramentas de automação inclusas:
-
-### Criar um Novo Módulo CRUD
-Gera Repository, Service, Handler, Routes, Models e **Testes de Integração** automaticamente:
-```bash
-make generate name=product
-```
-
-### Adicionar um Novo Driver de Storage
-Gera a implementação, testes e integra o driver à Factory de Media:
-```bash
-make storage-driver name=cloudinary
-```
+- **Métricas Prometheus** em `/metrics` (`http_requests_total`, `http_request_duration_seconds`).
+- **Logs estruturados** com `zap` em JSON, com `requestId` propagado via context (typed key `logger.RequestIDKey`).
+- **Slow query log** no GORM com threshold de 100 ms em dev.
+- **Health check** em `/health`.
 
 ---
 
 ## 🧪 Testes e Cobertura
 
-A filosofia deste projeto é **100% de cobertura**. Não aceitamos código sem validação real.
+A meta deste projeto é **100% de cobertura** em statements, branches, functions e lines.
 
-*   **Executar Testes:**
-    ```bash
-    make test
-    ```
-*   **Gerar Relatório de Cobertura:**
-    ```bash
-    make coverage
-    ```
-*   **Visualizar Cobertura no Navegador:**
-    ```bash
-    make coverage-html
-    ```
+```bash
+make test          # roda todos os testes
+make coverage      # gera resumo no terminal
+make coverage-html # abre relatório HTML no browser
+```
+
+Os testes usam `testcontainers` para subir Postgres e Redis reais, garantindo que a integração com o banco é testada de verdade — não com mocks.
+
+### Compliance E2E
+
+Há uma suite externa de testes E2E em [mage-backend-compliance](../mage-backend-compliance) que valida o backend rodando como um todo (auth, RBAC, auditoria, rate limit, session invalidation, etc.).
 
 ---
 
-## 📜 Comandos Disponíveis (Makefile)
+## 🛠️ Geradores de Código
+
+```bash
+make generate name=product       # cria módulo CRUD completo (repo, service, handler, routes, testes)
+make storage-driver name=cloudinary  # cria driver de storage novo
+make swagger                     # regenera a documentação OpenAPI
+```
+
+---
+
+## 📜 Comandos do Makefile
 
 | Comando | Descrição |
-| :--- | :--- |
-| `make dev` | Inicia o servidor com Live Reload (Air) |
-| `make test` | Executa todos os testes do projeto |
-| `make coverage` | Gera resumo de cobertura de código no terminal |
-| `make coverage-html`| Abre o relatório de cobertura detalhado no browser |
-| `make swagger` | Atualiza a documentação OpenAPI/Swagger |
-| `make generate name=X` | Gera um novo módulo CRUD completo |
-| `make infra-up` | Sobe Postgres, Redis e RabbitMQ via Docker |
-| `make infra-down` | Remove todos os containers de infraestrutura |
-| `make metrics-up` | Sobe Prometheus e Grafana |
-| `make metrics-down` | Para e remove os containers de métricas |
-
----
-
-## 🚀 CI/CD (GitHub Actions)
-
-O projeto conta com um pipeline de Integração Contínua (CI) robusto:
-
-*   **Build:** Verifica se a aplicação compila corretamente em múltiplos ambientes.
-*   **Testes Automatizados:** Executa toda a suíte de testes usando Testcontainers (Postgres/Redis reais).
-*   **Coverage Guard:** O pipeline falha automaticamente se a cobertura de código for inferior a **100%**.
-*   **Dependency Check:** Garante que o `go.mod` e `go.sum` estão sincronizados.
+|---------|-----------|
+| `make dev` | Sobe o servidor com live reload (Air) |
+| `make test` | Roda todos os testes |
+| `make coverage` | Resumo de cobertura no terminal |
+| `make coverage-html` | Relatório HTML |
+| `make swagger` | Regenera OpenAPI/Swagger |
+| `make generate name=X` | Gera módulo CRUD |
+| `make storage-driver name=X` | Gera driver de storage |
+| `make infra-up` | Sobe Postgres, Redis, RabbitMQ |
+| `make infra-down` | Para os containers de infra |
+| `make migrate-diff name=X` | Cria migration a partir de mudanças no model |
+| `make migrate-up` | Aplica migrations |
 
 ---
 
 ## 📖 Documentação da API
 
-A documentação interativa via Swagger/OpenAPI está organizada por versão:
+Quando em `development`, a documentação interativa está disponível em:
+- **Swagger UI:** `http://localhost:8888/v1/docs/index.html`
+- **OpenAPI JSON:** `http://localhost:8888/api-docs/openapi.json`
 
-*   **Swagger UI:** `http://localhost:8888/v1/docs/index.html`
-*   **JSON Spec:** `http://localhost:8888/v1/docs/doc.json`
-*   **Prometheus UI:** `http://localhost:9090`
-*   **Grafana Dashboard:** `http://localhost:3001` (User: `admin` / Pass: `admin`)
+Em produção, ambos os endpoints são desabilitados por padrão.
 
 ---
-Desenvolvido com ❤️ para ser a base definitiva de projetos Go de alta performance.
+
+## 🔍 Quality Gate
+
+Cada commit roda:
+1. Suite completa de testes do projeto
+2. Suite de compliance E2E (em repositório separado)
+3. Scan SonarQube com quality gate (cobertura > 95%, zero `BUG`/`VULNERABILITY` críticos, duplicação < 3%)
+
+---
+
+## 📁 Estrutura de Domínio
+
+Cada módulo em `internal/app/` segue o mesmo padrão:
+
+```
+internal/app/user/
+├── handler.go         # HTTP handlers (Gin)
+├── service.go         # Lógica de negócio
+├── repository.go      # Acesso a dados (GORM)
+├── routes.go          # Registro de rotas
+├── handler_test.go    # Testes do handler
+├── service_test.go    # Testes do service
+└── repository_test.go # Testes do repository
+```
+
+Módulos incluídos: `auth`, `user`, `role`, `product`, `dashboard`, `media`.
+
+---
+
+Desenvolvido como ponto de partida limpo para projetos Go. Adicione complexidade conforme a necessidade real — não antes.

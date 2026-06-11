@@ -16,12 +16,11 @@ func Logger() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
 
-		// Request ID
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
-		c.Set("requestId", requestID)
+		c.Set(string(logger.RequestIDKey), requestID)
 		c.Header("X-Request-ID", requestID)
 
 		c.Next()

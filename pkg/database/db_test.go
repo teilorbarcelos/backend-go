@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"backend-go/pkg/config"
+	"backend-go/pkg/retry"
 	"gorm.io/gorm"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -31,6 +33,8 @@ func TestConnectDB(t *testing.T) {
 	origAutoMigrate := dbAutoMigrate
 	origRunMigrations := runMigrations
 	origDB := DB
+	origRetry := dbRetryConfig
+	dbRetryConfig = retry.Config{MaxAttempts: 2, Delay: time.Millisecond, Factor: 1.0}
 
 	defer func() {
 		config.AppConfig.Environment = origEnv
@@ -40,6 +44,7 @@ func TestConnectDB(t *testing.T) {
 		dbAutoMigrate = origAutoMigrate
 		runMigrations = origRunMigrations
 		DB = origDB
+		dbRetryConfig = origRetry
 	}()
 
 	t.Run("Success in test mode", func(t *testing.T) {
@@ -80,6 +85,21 @@ func TestConnectDB(t *testing.T) {
 		}
 
 		assert.PanicsWithValue(t, "fatal: connection", func() {
+			ConnectDB()
+		})
+	})
+
+	t.Run("Failure on pgx.ParseConfig", func(t *testing.T) {
+		config.AppConfig.Environment = "test"
+		origDBUrl := config.AppConfig.DBUrl
+		config.AppConfig.DBUrl = "invalid://%"
+		defer func() { config.AppConfig.DBUrl = origDBUrl }()
+
+		logFatalf = func(format string, v ...interface{}) {
+			panic("fatal: parse")
+		}
+
+		assert.PanicsWithValue(t, "fatal: parse", func() {
 			ConnectDB()
 		})
 	})

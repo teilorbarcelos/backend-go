@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"backend-go/pkg/cache"
-	"backend-go/pkg/security"
+		"backend-go/pkg/security"
 
 	"github.com/gin-gonic/gin"
 )
+
+const middlewareSessionVerKey = "session:ver:%s"
 
 func Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -36,11 +38,8 @@ func Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		tokenHash := security.SHA256(tokenString)
-		sessionKey := fmt.Sprintf("session:role:%s:user:%s:access:%s", claims.RoleID, claims.UserID, tokenHash)
-
-		exists, err := cache.RedisClient.Exists(c.Request.Context(), sessionKey).Result()
-		if err != nil || exists == 0 {
+		storedVersion, err := cache.RedisClient.Get(c.Request.Context(), fmt.Sprintf(middlewareSessionVerKey, claims.UserID)).Int()
+		if err != nil || storedVersion != claims.SessionVersion {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "UnauthorizedError"})
 			c.Abort()
 			return
@@ -53,6 +52,9 @@ func Authenticate() gin.HandlerFunc {
 		c.Set("userEmail", claims.Email)
 		c.Set("userRoleID", claims.RoleID)
 		c.Set("userPermissions", claims.Permissions)
+		if len(claims.Permissions) > 0 {
+			c.Set("userPermissionsBitset", security.CompilePermissions(claims.Permissions))
+		}
 
 		c.Next()
 	}

@@ -9,7 +9,18 @@ import (
 	"backend-go/pkg/config"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
+
+var rateLimitScript = redis.NewScript(`
+local key = KEYS[1]
+local window_ms = tonumber(ARGV[1])
+local current = redis.call('INCR', key)
+if current == 1 then
+    redis.call('PEXPIRE', key, window_ms)
+end
+return {current, redis.call('PTTL', key)}
+`)
 
 func getRateLimitKey(c *gin.Context) string {
 	userID, exists := c.Get("userID")
@@ -38,32 +49,25 @@ func RateLimitMiddleware() gin.HandlerFunc {
 
 		key := getRateLimitKey(c)
 		windowDuration, maxRequests := getRateLimitConfig()
+		windowMs := windowDuration.Milliseconds()
 
 		ctx := c.Request.Context()
 
-		pipe := cache.RedisClient.Pipeline()
-		incr := pipe.Incr(ctx, key)
-		ttl := pipe.TTL(ctx, key)
-		_, err := pipe.Exec(ctx)
-
-		if err != nil && err != ctx.Err() {
+		result, err := rateLimitScript.Run(ctx, cache.RedisClient, []string{key}, windowMs).Slice()
+		if err != nil {
 			c.Next()
 			return
 		}
 
-		currentCount := incr.Val()
-
-		if currentCount == 1 || ttl.Val() < 0 {
-			cache.RedisClient.Expire(ctx, key, windowDuration)
-			ttl = cache.RedisClient.TTL(ctx, key)
-		}
+		currentCount := int64(result[0].(int64))
+		resetMs := result[1].(int64)
 
 		remaining := maxRequests - currentCount
 		if remaining < 0 {
 			remaining = 0
 		}
 
-		resetInSeconds := int64(ttl.Val().Seconds())
+		resetInSeconds := resetMs / 1000
 
 		c.Header("X-RateLimit-Limit", strconv.FormatInt(maxRequests, 10))
 		c.Header("X-RateLimit-Remaining", strconv.FormatInt(remaining, 10))

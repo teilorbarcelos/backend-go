@@ -2,10 +2,16 @@ package user
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"backend-go/internal/core/models"
+	"backend-go/internal/core/repository"
+	"backend-go/pkg/config"
 	"backend-go/pkg/database"
 )
 
@@ -68,6 +74,21 @@ func TestUserRepository_SearchPaginated(t *testing.T) {
 		assert.Len(t, users, 1)
 		assert.Equal(t, "Search User 1", users[0].Name)
 	})
+}
+
+func TestUserRepository_IncrementSessionVersion_Error(t *testing.T) {
+	newDB, err := gorm.Open(postgres.Open(config.AppConfig.DBUrl), &gorm.Config{})
+	require.NoError(t, err)
+	err = newDB.Callback().Update().Before("gorm:update").Register("forceError", func(d *gorm.DB) {
+		d.AddError(errors.New("forced error"))
+	})
+	require.NoError(t, err)
+
+	repo := &UserRepository{
+		BaseRepository: *repository.NewBaseRepository[models.User](newDB),
+	}
+	_, err = repo.IncrementSessionVersion(context.Background(), "1")
+	assert.Error(t, err)
 }
 
 func TestUserRepository_FindByEmail(t *testing.T) {

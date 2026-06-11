@@ -200,12 +200,9 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 	message := "erro interno do servidor"
 
 	switch {
-	case errors.Is(err, domainerr.ErrUserNotFound), errors.Is(err, domainerr.ErrInvalidCredentials), errors.Is(err, domainerr.ErrInvalidToken), errors.Is(err, domainerr.ErrTokenExpired):
+	case errors.Is(err, domainerr.ErrUserNotFound), errors.Is(err, domainerr.ErrInvalidCredentials), errors.Is(err, domainerr.ErrInvalidToken), errors.Is(err, domainerr.ErrTokenExpired), errors.Is(err, domainerr.ErrAccountDisabled):
 		status = http.StatusUnauthorized
 		message = "UnauthorizedError"
-	case errors.Is(err, domainerr.ErrAccountDisabled):
-		status = http.StatusForbidden
-		message = err.Error()
 	case errors.Is(err, domainerr.ErrAuthNotConfigured):
 		status = http.StatusUnprocessableEntity
 		message = err.Error()

@@ -14,10 +14,24 @@ import (
 
 const auditPrefix = "audit."
 
+var auditBuffer *AuditBuffer
+
+func SetAuditBuffer(buf *AuditBuffer) {
+	auditBuffer = buf
+}
+
 func RegisterAuditHooks(db *gorm.DB) {
 	db.Callback().Create().After("gorm:create").Register("audit:create", auditCreateHook)
 	db.Callback().Update().Before("gorm:update").Register("audit:update", auditUpdateHook)
 	db.Callback().Delete().Before("gorm:delete").Register("audit:delete", auditDeleteHook)
+}
+
+func writeAuditLog(db *gorm.DB, entry *models.AuditLog) {
+	if auditBuffer != nil {
+		auditBuffer.Push(entry)
+		return
+	}
+	db.Session(&gorm.Session{NewDB: true}).Create(entry)
 }
 
 func auditCreateHook(db *gorm.DB) {
@@ -34,15 +48,15 @@ func auditCreateHook(db *gorm.DB) {
 	}
 
 	log := models.AuditLog{
-		Action:    "CREATE",
+		Action:      "CREATE",
 		TargetTable: db.Statement.Schema.Table,
-		RecordID:  recordID,
-		OldValues: "{}",
-		NewValues: newVals,
-		UserID:    userID,
+		RecordID:    recordID,
+		OldValues:   "{}",
+		NewValues:   newVals,
+		UserID:      userID,
 	}
 
-	db.Session(&gorm.Session{NewDB: true}).Create(&log)
+	writeAuditLog(db, &log)
 }
 
 func auditUpdateHook(db *gorm.DB) {
@@ -79,15 +93,15 @@ func auditUpdateHook(db *gorm.DB) {
 	}
 
 	log := models.AuditLog{
-		Action:    "UPDATE",
+		Action:      "UPDATE",
 		TargetTable: db.Statement.Schema.Table,
-		RecordID:  recordID,
-		OldValues: oldValsStr,
-		NewValues: newVals,
-		UserID:    userID,
+		RecordID:    recordID,
+		OldValues:   oldValsStr,
+		NewValues:   newVals,
+		UserID:      userID,
 	}
 
-	db.Session(&gorm.Session{NewDB: true}).Create(&log)
+	writeAuditLog(db, &log)
 }
 
 func auditDeleteHook(db *gorm.DB) {
@@ -103,15 +117,15 @@ func auditDeleteHook(db *gorm.DB) {
 	}
 
 	log := models.AuditLog{
-		Action:    "DELETE",
+		Action:      "DELETE",
 		TargetTable: db.Statement.Schema.Table,
-		RecordID:  recordID,
-		OldValues: "{}",
-		NewValues: "{}",
-		UserID:    userID,
+		RecordID:    recordID,
+		OldValues:   "{}",
+		NewValues:   "{}",
+		UserID:      userID,
 	}
 
-	db.Session(&gorm.Session{NewDB: true}).Create(&log)
+	writeAuditLog(db, &log)
 }
 
 func getRecordID(db *gorm.DB) string {
