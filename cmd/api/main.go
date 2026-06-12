@@ -152,7 +152,7 @@ func main() {
 		}
 	})
 
-	sessionMgr := session.NewSessionManager()
+		sessionMgr := session.NewSessionManager()
 
 	v1 := r.Group("/v1")
 	{
@@ -164,7 +164,9 @@ func main() {
 		}
 		protected := v1.Group("/")
 		protected.Use(middleware.Authenticate())
-		auth.RegisterRoutes(v1, protected, database.DB)
+		if config.AppConfig.AuthMode != "remote" {
+			auth.RegisterRoutes(v1, protected, database.DB)
+		}
 		user.RegisterRoutes(protected, database.DB, sessionMgr)
 		role.RegisterRoutes(protected, database.DB, sessionMgr)
 		product.RegisterRoutes(protected, database.DB)

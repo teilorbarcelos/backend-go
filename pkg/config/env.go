@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Environment       string `mapstructure:"ENVIRONMENT"`
+	AuthMode          string `mapstructure:"AUTH_MODE"`
 	Port              string `mapstructure:"PORT"`
 	Host              string `mapstructure:"HOST"`
 	DBUrl             string `mapstructure:"DATABASE_URL"`
@@ -44,6 +45,7 @@ func LoadConfig() {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
+	viper.SetDefault("AUTH_MODE", "local")
 	viper.SetDefault("ENVIRONMENT", "development")
 	viper.SetDefault("PORT", "3000")
 	viper.SetDefault("HOST", "0.0.0.0")
