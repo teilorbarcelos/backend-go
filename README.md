@@ -199,6 +199,45 @@ Em produção, ambos os endpoints são desabilitados por padrão.
 
 ---
 
+## 🔌 Modo Microsserviço (auth-service-go)
+
+O módulo de autenticação pode ser extraído para o `auth-service-go` (porta `8001`)
+compartilhando o mesmo Postgres e Redis. Basta setar `AUTH_MODE=remote` no `.env`.
+
+```bash
+# backend-go/.env
+AUTH_MODE=remote   # desliga /v1/auth/* no monólito
+```
+
+### O que muda no monólito
+
+| Componente | Antes (monolito) | Depois (auth-service) |
+|---|---|---|
+| `POST /v1/auth/login` | Handler local | ❌ Remove |
+| `POST /v1/auth/refresh` | Handler local | ❌ Remove |
+| `POST /v1/auth/logout` | Handler local | ❌ Remove |
+| Middleware JWT | `ValidateToken(secret)` | ✅ **Igual** |
+| Middleware RBAC | Lê bitset de permissões no JWT | ✅ **Igual** |
+| Session version | `session:ver:%s` no Redis | ✅ **Igual** |
+
+> **Apenas 3 handlers são removidos.** Todo o resto (middleware, RBAC, Redis) continua inalterado.
+
+### Compliance
+
+```bash
+cd ../mage-backend-compliance
+
+# Modo monolítico (auth no monólito)
+cp .env.go .env
+make test-go
+
+# Modo microsserviço (auth no auth-service-go)
+cp .env.auth.go .env
+make test-auth-go
+```
+
+---
+
 ## 🔍 Quality Gate
 
 Cada commit roda:
